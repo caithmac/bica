@@ -49,14 +49,7 @@ results/
 research_papers/
 
 # ── Intermediate LaTeX artifacts ──────────────────────────────────────────────
-writing_outputs/**/*.log
-writing_outputs/**/progress.md
-writing_outputs/**/progress.pdf
-writing_outputs/**/draft.tex
-writing_outputs/**/final.tex
-writing_outputs/**/references.bib
-writing_outputs/**/figures/
-
+writing_outputs/    
 # ── Exploration scripts ────────────────────────────────────────────────────────
 inspect_data.py
 
