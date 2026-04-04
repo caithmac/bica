@@ -1,0 +1,25 @@
+# Core
+numpy>=1.26
+pandas>=2.0
+scipy>=1.11
+scikit-learn>=1.4
+
+# Chemistry
+rdkit>=2023.9
+
+# Deep learning
+torch>=2.2
+torchvision
+
+# Transformers / pre-trained models
+transformers>=4.38
+datasets>=2.17
+tokenizers>=0.15
+accelerate>=0.27
+
+# Tree models
+xgboost>=2.0
+lightgbm>=4.2
+
+# Misc
+tqdm

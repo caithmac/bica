@@ -1,0 +1,74 @@
+# ── Large cached data (recomputable) ──────────────────────────────────────────
+cache/features/
+cache/models/
+cache/psichic_finetuned/
+cache/psichic_protein_feats.pt
+cache/psichic_ligand_feats.pkl
+cache/bindingdb_raw.pkl
+cache/leakypdb_raw.pkl
+cache/splits/
+cache/predictions/
+cache/tokenizers/
+cache/psichic_*_log.txt
+cache/psichic_*_result.json
+cache/psichic_finetune_log.txt
+cache/psichic_zero_shot_log.txt
+
+# ── Third-party cloned repo ────────────────────────────────────────────────────
+PSICHIC/
+# Keep only our runner script
+!PSICHIC/psichic_runner.py
+
+# ── Claude Code internals ──────────────────────────────────────────────────────
+.claude/
+CLAUDE.md
+
+# ── Debugging / scratch ────────────────────────────────────────────────────────
+check_psichic_imports.py
+
+# ── Superseded experiment scripts ─────────────────────────────────────────────
+interpret_bica.py
+interpret_bica_full.py
+run_bica_attention.py
+run_gli_attention.py
+generate_full_grid.py
+generate_targeted_experiments.py
+
+# ── Old / confusing data ───────────────────────────────────────────────────────
+diary/results_diary_old_split.csv
+diary/full_grid_experiments.txt
+diary/targeted_experiments.txt
+
+# ── Work-in-progress slides ───────────────────────────────────────────────────
+slides/
+
+# ── Results folder (empty placeholder, actual results in diary/) ──────────────
+results/
+
+# ── Personal notes / reading list ─────────────────────────────────────────────
+research_papers/
+
+# ── Intermediate LaTeX artifacts ──────────────────────────────────────────────
+writing_outputs/**/*.log
+writing_outputs/**/progress.md
+
+# ── Exploration scripts ────────────────────────────────────────────────────────
+inspect_data.py
+
+# ── Python artifacts ──────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# ── OS artifacts ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editor artifacts ──────────────────────────────────────────────────────────
+.vscode/
+*.swp
+*~
