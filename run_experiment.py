@@ -139,6 +139,56 @@ register("lgbm_ecfp4_aac",
     ligand_repr="ecfp4_1024", protein_repr="aac_20", fusion="concat",
 )
 
+# ── Group: gp (Gaussian Processes — reviewer-requested baseline) ─────────
+
+register("gp_ecfp4_tanimoto",
+    group="gp",
+    model_family="gp",
+    ligand_repr="ecfp4_1024", protein_repr="none", fusion="ligand_only",
+    gp_kernel="tanimoto",
+    notes="Reviewer: GP + ECFP4 + Tanimoto kernel — missing virtual screening baseline",
+)
+register("gp_ecfp4_rbf",
+    group="gp",
+    model_family="gp",
+    ligand_repr="ecfp4_1024", protein_repr="none", fusion="ligand_only",
+    gp_kernel="rbf",
+)
+register("gp_ecfp4_matern",
+    group="gp",
+    model_family="gp",
+    ligand_repr="ecfp4_1024", protein_repr="none", fusion="ligand_only",
+    gp_kernel="matern",
+)
+register("gp_ecfp4_rq",
+    group="gp",
+    model_family="gp",
+    ligand_repr="ecfp4_1024", protein_repr="none", fusion="ligand_only",
+    gp_kernel="rq",
+)
+register("gp_ecfp4_aac",
+    group="gp",
+    model_family="gp",
+    ligand_repr="ecfp4_1024", protein_repr="aac_20", fusion="concat",
+    gp_kernel="rbf",
+    notes="Reviewer: GP + ECFP4+AAC + RBF kernel",
+)
+
+register("gp_ecfp4_esm2_8M",
+    group="gp",
+    model_family="gp",
+    ligand_repr="ecfp4_1024", protein_repr="esm2_8M_320", fusion="concat",
+    gp_kernel="rbf",
+    notes="Reviewer: GP + ECFP4 + ESM-2 8M frozen — tests if rich protein features help GP",
+)
+register("gp_ecfp4_esm2_35M",
+    group="gp",
+    model_family="gp",
+    ligand_repr="ecfp4_1024", protein_repr="esm2_35M_480", fusion="concat",
+    gp_kernel="rbf",
+    notes="Reviewer: GP + ECFP4 + ESM-2 35M frozen",
+)
+
 # ── Group: mlp ────────────────────────────────────────────────────────────────
 
 register("mlp_shallow_ecfp4_aac",
@@ -1102,14 +1152,22 @@ def build_features(cfg: dict, train_df, val_df, test_df):
     L_val   = lig_feat(val_df,   "val")
     L_test  = lig_feat(test_df,  "test")
 
-    print(f"[features] Computing protein features: {prot_repr}")
-    P_train = prot_feat(train_df, "train")
-    P_val   = prot_feat(val_df,   "val")
-    P_test  = prot_feat(test_df,  "test")
-
-    X_train = F.concat(L_train, P_train)
-    X_val   = F.concat(L_val,   P_val)
-    X_test  = F.concat(L_test,  P_test)
+    if prot_repr == "none":
+        # ponytail: ligand-only features — no protein
+        X_train = L_train
+        X_val   = L_val
+        X_test  = L_test
+        P_train = np.zeros((len(train_df), 0))
+        P_val   = np.zeros((len(val_df), 0))
+        P_test  = np.zeros((len(test_df), 0))
+    else:
+        print(f"[features] Computing protein features: {prot_repr}")
+        P_train = prot_feat(train_df, "train")
+        P_val   = prot_feat(val_df,   "val")
+        P_test  = prot_feat(test_df,  "test")
+        X_train = F.concat(L_train, P_train)
+        X_val   = F.concat(L_val,   P_val)
+        X_test  = F.concat(L_test,  P_test)
 
     y_train = train_df[LABEL_COL].values.astype(np.float32)
     y_val   = val_df[LABEL_COL].values.astype(np.float32)
@@ -1196,6 +1254,15 @@ def build_sklearn_model(cfg: dict, exp_name: str):
         return M.xgboost_model()
     elif name.startswith("lgbm"):
         return M.lightgbm_model()
+    elif name.startswith("gp"):
+        kernel = cfg.get("gp_kernel", "rbf")
+        builders = {
+            "tanimoto": M.gp_tanimoto,
+            "rbf": M.gp_rbf,
+            "matern": M.gp_matern,
+            "rq": M.gp_rq,
+        }
+        return builders[kernel]()
     else:
         raise ValueError(f"Cannot infer sklearn model from name: {name}")
 
@@ -1346,7 +1413,7 @@ def run_distmat(exp_name: str):
         else:
             patience_ctr += 1
 
-        if epoch % 10 == 0:
+        if epoch == 1 or epoch % 5 == 0:
             print(f"  epoch {epoch}  val_rmse={val_m['rmse']:.4f}  patience={patience_ctr}")
         if patience_ctr >= PATIENCE:
             print(f"  Early stop at epoch {epoch}")
@@ -1622,7 +1689,7 @@ def run_bica(exp_name: str):
         else:
             patience_ctr += 1
 
-        if epoch % 10 == 0:
+        if epoch == 1 or epoch % 5 == 0:
             print(f"  epoch {epoch}  val_rmse={val_m['rmse']:.4f}  patience={patience_ctr}")
         if patience_ctr >= PATIENCE:
             print(f"  Early stop at epoch {epoch}")
@@ -2332,6 +2399,12 @@ def run(exp_name: str):
     if cfg["model_family"] == "bica_v2":
         run_bica_v2(exp_name)
         return
+    if cfg["model_family"] == "finetune_mlp":
+        run_finetune_mlp(exp_name)
+        return
+    if cfg["model_family"] == "finetune_bica_v2":
+        run_finetune_bica_v2(exp_name)
+        return
 
     print(f"\n{'='*60}")
     print(f"  Experiment: {exp_name}")
@@ -2353,14 +2426,14 @@ def run(exp_name: str):
     n_params    = "N/A"
     epochs_done = "N/A"
 
-    if mf not in ("linear", "tree"):
+    if mf not in ("linear", "tree", "gp"):
         from sklearn.preprocessing import StandardScaler
         scaler = StandardScaler().fit(X_train)
         X_train = scaler.transform(X_train)
         X_val   = scaler.transform(X_val)
         X_test  = scaler.transform(X_test)
         # Scale separate ligand/protein tensors if they exist (for cross‑attention)
-        if 'L_train' in locals():
+        if P_train.shape[1] > 0:
             scaler_lig = StandardScaler().fit(L_train)
             L_train = scaler_lig.transform(L_train)
             L_val   = scaler_lig.transform(L_val)
@@ -2373,7 +2446,7 @@ def run(exp_name: str):
 
 
 
-    if mf in ("linear", "tree"):
+    if mf in ("linear", "tree", "gp"):
         # Sklearn path
         model = build_sklearn_model(cfg, exp_name)
         val_m, test_m, train_time, _, test_pred = train_sklearn(
@@ -2434,7 +2507,7 @@ def run(exp_name: str):
                 best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
             else:
                 patience_ctr += 1
-            if epoch % 10 == 0:
+            if epoch == 1 or epoch % 5 == 0:
                 print(f"  epoch {epoch}  val_rmse={rm['rmse']:.4f}")
             if patience_ctr >= PATIENCE:
                 break
@@ -2589,6 +2662,467 @@ def register_full_grid():
 
 # Register the full grid (this will add all experiments)
 register_full_grid()
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Fine-tuning experiments (reviewer response)
+# ─────────────────────────────────────────────────────────────────────────────
+
+register("mlp_ecfp4_esm2_8M_ft_k3",
+    group="finetune",
+    model_family="finetune_mlp",
+    ligand_repr="ecfp4_1024", protein_repr="esm2_8M_online",
+    fusion="concat", esm2_size="8M", finetune_layers=3,
+    notes="Reviewer: MLP + fine-tuned ESM-2 8M (top 3 layers unfrozen)",
+)
+register("mlp_ecfp4_esm2_8M_ft_k6",
+    group="finetune",
+    model_family="finetune_mlp",
+    ligand_repr="ecfp4_1024", protein_repr="esm2_8M_online",
+    fusion="concat", esm2_size="8M", finetune_layers=6,
+    notes="Reviewer: MLP + fine-tuned ESM-2 8M (all 6 layers unfrozen)",
+)
+register("mlp_ecfp4_esm2_35M_ft_k3",
+    group="finetune",
+    model_family="finetune_mlp",
+    ligand_repr="ecfp4_1024", protein_repr="esm2_35M_online",
+    fusion="concat", esm2_size="35M", finetune_layers=3,
+    notes="Reviewer: MLP + fine-tuned ESM-2 35M (top 3 layers unfrozen)",
+)
+register("bica_v2_cb77M_esm2_35M_ft_k3",
+    group="finetune",
+    model_family="finetune_bica_v2",
+    ligand_repr="chemberta_online_77M", protein_repr="esm2_35M_online",
+    fusion="bidirectional_cross_attn", esm2_size="35M", finetune_layers=3,
+    notes="Reviewer: BiCA v2 + fine-tuned ChemBERTa-77M + ESM-2 35M (top 3 layers)",
+)
+register("bica_v2_cb77M_esm2_35M_ft_k6",
+    group="finetune",
+    model_family="finetune_bica_v2",
+    ligand_repr="chemberta_online_77M", protein_repr="esm2_35M_online",
+    fusion="bidirectional_cross_attn", esm2_size="35M", finetune_layers=6,
+    notes="Reviewer: BiCA v2 + fine-tuned ChemBERTa-77M + ESM-2 35M (top 6 layers)",
+)
+
+# ── Fine-tuning runners ───────────────────────────────────────────────────
+
+def run_finetune_mlp(exp_name: str):
+    """MLP with online fine-tuned ESM-2 encoder.
+
+    ponytail: loads ESM-2 in-graph, freezes bottom, unfreezes top k layers,
+    forward-propagates protein sequences through the encoder every batch.
+    ECFP4 ligand features stay pre-computed (fingerprint, not a neural encoder).
+    """
+    import torch, torch.nn as nn
+    from torch.utils.data import DataLoader, TensorDataset
+    from transformers import EsmModel, AutoTokenizer
+    from harness.trainer import _get_device, count_parameters
+    from harness.config import LABEL_COL, SMILES_COL, PROTEIN_COL
+    from harness.config import BATCH_SIZE, MAX_EPOCHS, PATIENCE, LEARNING_RATE
+    from harness.metrics import compute_metrics, format_metrics
+    from harness.diary import log_result, save_predictions
+    from harness.featurizers import ecfp
+    import time, numpy as np
+
+    cfg = EXPERIMENTS[exp_name]
+    esm_size       = cfg.get("esm2_size", "8M")
+    finetune_k     = cfg.get("finetune_layers", 3)
+    esm_map = {
+        "8M":  ("facebook/esm2_t6_8M_UR50D",   320, 6),
+        "35M": ("facebook/esm2_t12_35M_UR50D", 480, 12),
+    }
+    model_name, esm_dim, total_layers = esm_map[esm_size]
+
+    print(f"\n{'='*60}\n  Experiment: {exp_name}  [MLP + ESM-2 FT k={finetune_k}]\n{'='*60}")
+
+    train_df, val_df, test_df = _get_splits()
+    device = _get_device()
+
+    # ── Ligand: pre-computed ECFP4 ──────────────────────────────────────
+    print("[ft_mlp] Computing ECFP4 ligand features …")
+    L_train = ecfp(train_df[SMILES_COL].tolist(), radius=2, nbits=1024)
+    L_val   = ecfp(val_df[SMILES_COL].tolist(),   radius=2, nbits=1024)
+    L_test  = ecfp(test_df[SMILES_COL].tolist(),  radius=2, nbits=1024)
+
+    # ── Load ESM-2, freeze all, unfreeze top k ──────────────────────────
+    print(f"[ft_mlp] Loading ESM-2 {esm_size} ({total_layers} layers, {esm_dim}d) …")
+    tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only=True)
+    esm = EsmModel.from_pretrained(model_name, local_files_only=True).to(device)
+
+    # Freeze all parameters
+    for p in esm.parameters():
+        p.requires_grad = False
+
+    # Unfreeze top k transformer layers + final layer norm + pooler
+    if finetune_k > 0:
+        layers = list(esm.encoder.layer)
+        for layer in layers[-finetune_k:]:
+            for p in layer.parameters():
+                p.requires_grad = True
+        for p in esm.encoder.emb_layer_norm_after.parameters():
+            p.requires_grad = True
+        n_trainable = sum(p.numel() for p in esm.parameters() if p.requires_grad)
+        print(f"[ft_mlp] Unfrozen params: {n_trainable:,} / "
+              f"{sum(p.numel() for p in esm.parameters()):,}")
+    else:
+        esm.eval()  # fully frozen
+
+    # ── Tokenize protein sequences ──────────────────────────────────────
+    def tokenize(seqs):
+        return tokenizer(seqs, return_tensors="pt", padding=True,
+                         truncation=True, max_length=512)
+
+    tok_train = tokenize(train_df[PROTEIN_COL].tolist())
+    tok_val   = tokenize(val_df[PROTEIN_COL].tolist())
+    tok_test  = tokenize(test_df[PROTEIN_COL].tolist())
+
+    # ── Build MLP head ──────────────────────────────────────────────────
+    # Input: ECFP4 (1024) + ESM-2 pooled (esm_dim)
+    hidden_dim = 256
+    mlp_head = nn.Sequential(
+        nn.Linear(1024 + esm_dim, hidden_dim),
+        nn.ReLU(),
+        nn.Dropout(0.2),
+        nn.Linear(hidden_dim, hidden_dim // 2),
+        nn.ReLU(),
+        nn.Dropout(0.2),
+        nn.Linear(hidden_dim // 2, 1),
+    ).to(device)
+
+    n_params = count_parameters(mlp_head) + sum(p.numel() for p in esm.parameters() if p.requires_grad)
+
+    # ── Optimizer: separate LR for encoder vs head ──────────────────────
+    encoder_params = [p for p in esm.parameters() if p.requires_grad]
+    optimizer = torch.optim.AdamW([
+        {"params": encoder_params, "lr": LEARNING_RATE * 0.1},  # lower LR for pretrained
+        {"params": mlp_head.parameters(), "lr": LEARNING_RATE},
+    ], weight_decay=1e-4)
+
+    criterion = nn.MSELoss()
+    y_tr = torch.tensor(train_df[LABEL_COL].values, dtype=torch.float32)
+    y_vl = val_df[LABEL_COL].values.astype(np.float32)
+    y_te = test_df[LABEL_COL].values.astype(np.float32)
+
+    L_tr = torch.tensor(L_train, dtype=torch.float32)
+    L_vl = torch.tensor(L_val, dtype=torch.float32).to(device)
+    L_te = torch.tensor(L_test, dtype=torch.float32).to(device)
+
+    # ── Create DataLoader ───────────────────────────────────────────────
+    ds = TensorDataset(
+        tok_train["input_ids"], tok_train["attention_mask"], L_tr, y_tr.unsqueeze(1))
+    loader = DataLoader(ds, batch_size=min(32, BATCH_SIZE), shuffle=True)
+
+    # ── Helper: batched ESM inference ──────────────────────────────────
+    def esm_encode(tok_dict, batch_size=64):
+        """Encode proteins in mini-batches to avoid OOM."""
+        n = len(tok_dict["input_ids"])
+        outputs = []
+        esm.eval()
+        with torch.no_grad():
+            for i in range(0, n, batch_size):
+                ids = tok_dict["input_ids"][i:i+batch_size].to(device)
+                mask = tok_dict["attention_mask"][i:i+batch_size].to(device)
+                out = esm(input_ids=ids, attention_mask=mask)
+                outputs.append(out.pooler_output.cpu())
+        return torch.cat(outputs, dim=0)
+
+    # ── Training loop ───────────────────────────────────────────────────
+    # ponytail: manual loop — simpler than modifying train_torch for online encoding
+    best_rmse, best_state, patience_ctr = float("inf"), None, 0
+    t0 = time.time()
+    epochs_done = 0
+
+    for epoch in range(1, MAX_EPOCHS + 1):
+        esm.train() if finetune_k > 0 else esm.eval()
+        mlp_head.train()
+
+        for p_ids, p_mask, l_batch, y_batch in loader:
+            p_ids, p_mask = p_ids.to(device), p_mask.to(device)
+            l_batch, y_batch = l_batch.to(device), y_batch.to(device)
+
+            with torch.set_grad_enabled(finetune_k > 0):
+                esm_out = esm(input_ids=p_ids, attention_mask=p_mask)
+            prot_emb = esm_out.pooler_output  # (B, esm_dim)
+
+            x = torch.cat([l_batch, prot_emb], dim=1)
+            pred = mlp_head(x)
+            loss = criterion(pred, y_batch)
+
+            optimizer.zero_grad()
+            loss.backward()
+            nn.utils.clip_grad_norm_(mlp_head.parameters(), 1.0)
+            if finetune_k > 0:
+                nn.utils.clip_grad_norm_(encoder_params, 1.0)
+            optimizer.step()
+
+        # ── Validation ──────────────────────────────────────────────
+        esm.eval()
+        mlp_head.eval()
+        with torch.no_grad():
+            val_emb = esm_encode(tok_val)
+            val_pred = mlp_head(torch.cat([L_vl, val_emb.to(device)], dim=1))
+            val_pred = val_pred.cpu().numpy().ravel()
+
+        vm = compute_metrics(y_vl, val_pred)
+        if vm["rmse"] < best_rmse:
+            best_rmse = vm["rmse"]
+            patience_ctr = 0
+            best_state = {
+                "esm": {k: v.cpu().clone() for k, v in esm.state_dict().items()},
+                "head": {k: v.cpu().clone() for k, v in mlp_head.state_dict().items()},
+            }
+        else:
+            patience_ctr += 1
+
+        if epoch == 1 or epoch % 5 == 0:
+            print(f"  epoch {epoch:3d}  val_rmse={vm['rmse']:.4f}  "
+                  f"val_pearson={vm['pearson_r']:.4f}")
+        if patience_ctr >= PATIENCE:
+            epochs_done = epoch
+            break
+        epochs_done = epoch
+
+    # ── Test ────────────────────────────────────────────────────────────
+    esm.load_state_dict(best_state["esm"])
+    mlp_head.load_state_dict(best_state["head"])
+    esm.eval()
+    mlp_head.eval()
+
+    with torch.no_grad():
+        val_emb2 = esm_encode(tok_val)
+        val_pred2 = mlp_head(torch.cat([L_vl, val_emb2.to(device)], dim=1))
+        val_pred2 = val_pred2.cpu().numpy().ravel()
+
+        test_emb = esm_encode(tok_test)
+        test_pred = mlp_head(torch.cat([L_te, test_emb.to(device)], dim=1))
+        test_pred = test_pred.cpu().numpy().ravel()
+
+    val_m  = compute_metrics(y_vl, val_pred2)
+    test_m = compute_metrics(y_te, test_pred)
+    train_time = time.time() - t0
+
+    print(f"[ft_mlp] Val  → {format_metrics(val_m)}")
+    print(f"[ft_mlp] Test → {format_metrics(test_m)}")
+
+    save_predictions(_exp_id(exp_name), y_te, test_pred)
+    log_result(
+        experiment_id=_exp_id(exp_name), model_name=_exp_id(exp_name),
+        model_family="finetune_mlp", ligand_repr=cfg["ligand_repr"],
+        protein_repr="esm2_online", fusion_strategy="concat",
+        n_params=n_params, epochs_trained=epochs_done,
+        batch_size=min(32, BATCH_SIZE), learning_rate=LEARNING_RATE,
+        split_type=_split_tag(), n_train=len(y_tr), n_val=len(y_vl),
+        n_test=len(y_te), val_metrics=val_m, test_metrics=test_m,
+        train_time_sec=train_time,
+        notes=f"ESM-2 {esm_size} top {finetune_k} layers unfrozen. {cfg.get('notes','')}",
+    )
+
+
+def run_finetune_bica_v2(exp_name: str):
+    """BiCA v2 with fine-tuned ESM-2 + ChemBERTa encoders.
+
+    ponytail: loads both encoders in-graph, unfreezes top k layers,
+    forward-propagates sequences through both every batch.
+    """
+    import torch, torch.nn as nn
+    from torch.utils.data import Dataset, DataLoader
+    from transformers import EsmModel, AutoTokenizer, AutoModel
+    from harness.trainer import _get_device, count_parameters
+    from harness.config import LABEL_COL, SMILES_COL, PROTEIN_COL
+    from harness.config import BATCH_SIZE, MAX_EPOCHS, PATIENCE, LEARNING_RATE
+    from harness.metrics import compute_metrics, format_metrics
+    from harness.diary import log_result, save_predictions
+    import time, numpy as np
+
+    cfg = EXPERIMENTS[exp_name]
+    esm_size       = cfg.get("esm2_size", "35M")
+    finetune_k     = cfg.get("finetune_layers", 3)
+    esm_map = {
+        "35M": ("facebook/esm2_t12_35M_UR50D", 480, 12),
+    }
+    esm_model_name, esm_dim, esm_layers = esm_map[esm_size]
+    cb_model_name = "DeepChem/ChemBERTa-77M-MTR"
+
+    print(f"\n{'='*60}\n  Experiment: {exp_name}  [BiCA v2 FT k={finetune_k}]\n{'='*60}")
+
+    train_df, val_df, test_df = _get_splits()
+    device = _get_device()
+
+    # ── Load ESM-2 ──────────────────────────────────────────────────────
+    print(f"[ft_bica] Loading ESM-2 {esm_size} …")
+    esm_tok = AutoTokenizer.from_pretrained(esm_model_name, local_files_only=True)
+    esm = EsmModel.from_pretrained(esm_model_name, local_files_only=True).to(device)
+    for p in esm.parameters():
+        p.requires_grad = False
+    if finetune_k > 0:
+        for layer in list(esm.encoder.layer)[-finetune_k:]:
+            for p in layer.parameters():
+                p.requires_grad = True
+        for p in esm.encoder.emb_layer_norm_after.parameters():
+            p.requires_grad = True
+
+    # ── Load ChemBERTa ──────────────────────────────────────────────────
+    print(f"[ft_bica] Loading ChemBERTa {cb_model_name} …")
+    cb_tok = AutoTokenizer.from_pretrained(cb_model_name, local_files_only=True)
+    cb = AutoModel.from_pretrained(cb_model_name, local_files_only=True).to(device)
+    for p in cb.parameters():
+        p.requires_grad = False
+    if finetune_k > 0:
+        cb_layers = list(cb.encoder.layer) if hasattr(cb, 'encoder') else []
+        for layer in cb_layers[-finetune_k:]:
+            for p in layer.parameters():
+                p.requires_grad = True
+
+    # ── Build BiCA v2 model ─────────────────────────────────────────────
+    # ponytail: reuse existing bica_v2 builder — lig_dim from ChemBERTa, prot_dim from ESM-2
+    cb_dim = cb.config.hidden_size  # typically 600 for ChemBERTa-zinc-base
+    from models.bica_v2 import build_bica_v2
+    bica = build_bica_v2(protein_seq_dim=esm_dim, ligand_atom_dim=cb_dim,
+                         hidden_dim=128, num_heads=4, dropout=0.1).to(device)
+    n_params = (count_parameters(bica) +
+                sum(p.numel() for p in esm.parameters() if p.requires_grad) +
+                sum(p.numel() for p in cb.parameters() if p.requires_grad))
+
+    # ── Optimizer ───────────────────────────────────────────────────────
+    ft_params = ([p for p in esm.parameters() if p.requires_grad] +
+                 [p for p in cb.parameters() if p.requires_grad])
+    optimizer = torch.optim.AdamW([
+        {"params": ft_params, "lr": LEARNING_RATE * 0.1},
+        {"params": bica.parameters(), "lr": LEARNING_RATE},
+    ], weight_decay=1e-4)
+    criterion = nn.MSELoss()
+
+    # ── Tokenize ────────────────────────────────────────────────────────
+    def tokenize_prot(seqs):
+        return esm_tok(seqs, return_tensors="pt", padding=True,
+                       truncation=True, max_length=512)
+    def tokenize_lig(smiles_list):
+        return cb_tok(smiles_list, return_tensors="pt", padding=True,
+                      truncation=True, max_length=256)
+
+    tok_p_tr = tokenize_prot(train_df[PROTEIN_COL].tolist())
+    tok_p_vl = tokenize_prot(val_df[PROTEIN_COL].tolist())
+    tok_p_te = tokenize_prot(test_df[PROTEIN_COL].tolist())
+    tok_l_tr = tokenize_lig(train_df[SMILES_COL].tolist())
+    tok_l_vl = tokenize_lig(val_df[SMILES_COL].tolist())
+    tok_l_te = tokenize_lig(test_df[SMILES_COL].tolist())
+
+    y_tr = train_df[LABEL_COL].values.astype(np.float32)
+    y_vl = val_df[LABEL_COL].values.astype(np.float32)
+    y_te = test_df[LABEL_COL].values.astype(np.float32)
+
+    # ── DataLoader ──────────────────────────────────────────────────────
+    ds = TensorDataset(
+        tok_p_tr["input_ids"], tok_p_tr["attention_mask"],
+        tok_l_tr["input_ids"], tok_l_tr["attention_mask"],
+        torch.tensor(y_tr, dtype=torch.float32).unsqueeze(1))
+    loader = DataLoader(ds, batch_size=min(16, BATCH_SIZE // 2), shuffle=True)
+
+    best_rmse, best_state, patience_ctr = float("inf"), None, 0
+    t0 = time.time()
+    epochs_done = 0
+
+    for epoch in range(1, MAX_EPOCHS + 1):
+        esm.train() if finetune_k > 0 else esm.eval()
+        cb.train() if finetune_k > 0 else cb.eval()
+        bica.train()
+
+        for pid, pmask, lid, lmask, yb in loader:
+            pid, pmask = pid.to(device), pmask.to(device)
+            lid, lmask = lid.to(device), lmask.to(device)
+            yb = yb.to(device)
+
+            with torch.set_grad_enabled(finetune_k > 0):
+                prot_out = esm(input_ids=pid, attention_mask=pmask).last_hidden_state
+                lig_out  = cb(input_ids=lid, attention_mask=lmask).last_hidden_state
+
+            # Create masks: 1 = padding, 0 = real token (matching bica_v2 convention)
+            prot_mask = ~pmask.bool()
+            lig_mask  = ~lmask.bool()
+
+            pred = bica(prot_out, lig_out, prot_mask, lig_mask)
+            loss = criterion(pred, yb)
+
+            optimizer.zero_grad()
+            loss.backward()
+            nn.utils.clip_grad_norm_(bica.parameters(), 1.0)
+            if ft_params:
+                nn.utils.clip_grad_norm_(ft_params, 1.0)
+            optimizer.step()
+
+        # ── Validation ──────────────────────────────────────────────
+        esm.eval(); cb.eval(); bica.eval()
+        with torch.no_grad():
+            p_vl = esm(input_ids=tok_p_vl["input_ids"].to(device),
+                       attention_mask=tok_p_vl["attention_mask"].to(device))
+            l_vl = cb(input_ids=tok_l_vl["input_ids"].to(device),
+                      attention_mask=tok_l_vl["attention_mask"].to(device))
+            val_pred = bica(p_vl.last_hidden_state, l_vl.last_hidden_state,
+                           ~tok_p_vl["attention_mask"].bool().to(device),
+                           ~tok_l_vl["attention_mask"].bool().to(device))
+            val_pred = val_pred.cpu().numpy().ravel()
+
+        vm = compute_metrics(y_vl, val_pred)
+        if vm["rmse"] < best_rmse:
+            best_rmse = vm["rmse"]; patience_ctr = 0
+            best_state = {
+                "esm": {k: v.cpu().clone() for k, v in esm.state_dict().items()},
+                "cb": {k: v.cpu().clone() for k, v in cb.state_dict().items()},
+                "bica": {k: v.cpu().clone() for k, v in bica.state_dict().items()},
+            }
+        else:
+            patience_ctr += 1
+
+        if epoch % 5 == 0:
+            print(f"  epoch {epoch:3d}  val_rmse={vm['rmse']:.4f}  "
+                  f"val_pearson={vm['pearson_r']:.4f}")
+        if patience_ctr >= PATIENCE:
+            epochs_done = epoch; break
+        epochs_done = epoch
+
+    # ── Test ────────────────────────────────────────────────────────────
+    esm.load_state_dict(best_state["esm"])
+    cb.load_state_dict(best_state["cb"])
+    bica.load_state_dict(best_state["bica"])
+    esm.eval(); cb.eval(); bica.eval()
+
+    with torch.no_grad():
+        p_vl2 = esm(input_ids=tok_p_vl["input_ids"].to(device),
+                    attention_mask=tok_p_vl["attention_mask"].to(device))
+        l_vl2 = cb(input_ids=tok_l_vl["input_ids"].to(device),
+                   attention_mask=tok_l_vl["attention_mask"].to(device))
+        val_pred2 = bica(p_vl2.last_hidden_state, l_vl2.last_hidden_state,
+                        ~tok_p_vl["attention_mask"].bool().to(device),
+                        ~tok_l_vl["attention_mask"].bool().to(device))
+        val_pred2 = val_pred2.cpu().numpy().ravel()
+
+        p_te = esm(input_ids=tok_p_te["input_ids"].to(device),
+                   attention_mask=tok_p_te["attention_mask"].to(device))
+        l_te = cb(input_ids=tok_l_te["input_ids"].to(device),
+                  attention_mask=tok_l_te["attention_mask"].to(device))
+        test_pred = bica(p_te.last_hidden_state, l_te.last_hidden_state,
+                        ~tok_p_te["attention_mask"].bool().to(device),
+                        ~tok_l_te["attention_mask"].bool().to(device))
+        test_pred = test_pred.cpu().numpy().ravel()
+
+    val_m  = compute_metrics(y_vl, val_pred2)
+    test_m = compute_metrics(y_te, test_pred)
+    train_time = time.time() - t0
+
+    print(f"[ft_bica] Val  → {format_metrics(val_m)}")
+    print(f"[ft_bica] Test → {format_metrics(test_m)}")
+
+    save_predictions(_exp_id(exp_name), y_te, test_pred)
+    log_result(
+        experiment_id=_exp_id(exp_name), model_name=_exp_id(exp_name),
+        model_family="finetune_bica_v2", ligand_repr="chemberta_online_77M",
+        protein_repr="esm2_online", fusion_strategy="bidirectional_cross_attn",
+        n_params=n_params, epochs_trained=epochs_done,
+        batch_size=min(16, BATCH_SIZE // 2), learning_rate=LEARNING_RATE,
+        split_type=_split_tag(), n_train=len(y_tr), n_val=len(y_vl),
+        n_test=len(y_te), val_metrics=val_m, test_metrics=test_m,
+        train_time_sec=train_time,
+        notes=f"ESM-2 {esm_size} + ChemBERTa-77M, top {finetune_k} layers unfrozen. {cfg.get('notes','')}",
+    )
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CLI

@@ -296,10 +296,27 @@ def esm2_embeddings(sequences: List[str], model_size: str = "8M",
     if model_size not in model_map:
         raise ValueError(f"Unknown ESM-2 size: {model_size}")
     model_name, dim = model_map[model_size]
-    from transformers import AutoTokenizer, EsmModel
     import torch
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = EsmModel.from_pretrained(model_name)
+
+    # Try transformers first; fall back to esm library if tokenizer missing
+    try:
+        from transformers import AutoTokenizer, EsmModel
+        tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only=True)
+        model = EsmModel.from_pretrained(model_name, local_files_only=True)
+        _use_esm_lib = False
+    except Exception:
+        # Fall back to esm library (bundles its own tokenizer)
+        import esm
+        esm_loaders = {
+            "8M": esm.pretrained.esm2_t6_8M_UR50D,
+            "35M": esm.pretrained.esm2_t12_35M_UR50D,
+            "150M": esm.pretrained.esm2_t30_150M_UR50D,
+            "650M": esm.pretrained.esm2_t33_650M_UR50D,
+        }
+        model, alphabet = esm_loaders[model_size]()
+        tokenizer = alphabet.get_batch_converter()
+        _use_esm_lib = True
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device).eval()
     seqs = [s[:max_len] for s in sequences]
@@ -309,13 +326,25 @@ def esm2_embeddings(sequences: List[str], model_size: str = "8M",
             print(f"  [esm2_{model_size}] Processing batch {i//batch_size + 1}/{(len(seqs)-1)//batch_size + 1}")
 
         batch = seqs[i:i+batch_size]
-        enc = tokenizer(batch, return_tensors="pt", padding=True,
-                        truncation=True, max_length=max_len)
-        enc = {k: v.to(device) for k, v in enc.items()}
-        with torch.no_grad():
-            out = model(**enc)
-        mask = enc["attention_mask"].unsqueeze(-1).float()
-        emb = (out.last_hidden_state * mask).sum(1) / mask.sum(1).clamp(min=1)
+
+        if _use_esm_lib:
+            data = [(f"p{j}", s) for j, s in enumerate(batch)]
+            _, _, tokens = tokenizer(data)
+            tokens = tokens.to(device)
+            with torch.no_grad():
+                out = model(tokens, repr_layers=[model.num_layers])
+            reps = out["representations"][model.num_layers]
+            # Mean pool over non-padding tokens
+            mask = (tokens != alphabet.padding_idx).float().unsqueeze(-1).to(device)
+            emb = (reps * mask).sum(1) / mask.sum(1).clamp(min=1)
+        else:
+            enc = tokenizer(batch, return_tensors="pt", padding=True,
+                            truncation=True, max_length=max_len)
+            enc = {k: v.to(device) for k, v in enc.items()}
+            with torch.no_grad():
+                out = model(**enc)
+            mask = enc["attention_mask"].unsqueeze(-1).float()
+            emb = (out.last_hidden_state * mask).sum(1) / mask.sum(1).clamp(min=1)
         all_embs.append(emb.cpu().numpy())
     return np.concatenate(all_embs, axis=0)
 
