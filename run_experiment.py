@@ -2924,8 +2924,8 @@ def run_finetune_bica_v2(exp_name: str):
     forward-propagates sequences through both every batch.
     """
     import torch, torch.nn as nn
-    from torch.utils.data import Dataset, DataLoader
-    from transformers import EsmModel, AutoTokenizer, AutoModel
+    from torch.utils.data import Dataset, DataLoader, TensorDataset
+    from transformers import AutoTokenizer, AutoModel
     from harness.trainer import _get_device, count_parameters
     from harness.config import LABEL_COL, SMILES_COL, PROTEIN_COL
     from harness.config import BATCH_SIZE, MAX_EPOCHS, PATIENCE, LEARNING_RATE
@@ -2948,16 +2948,22 @@ def run_finetune_bica_v2(exp_name: str):
     device = _get_device()
 
     # ── Load ESM-2 ──────────────────────────────────────────────────────
-    print(f"[ft_bica] Loading ESM-2 {esm_size} …")
-    esm_tok = AutoTokenizer.from_pretrained(esm_model_name, local_files_only=True)
-    esm = EsmModel.from_pretrained(esm_model_name, local_files_only=True).to(device)
+    print(f"[ft_bica] Loading ESM-2 {esm_size} via esm library …")
+    import esm as esm_lib
+    esm_loaders = {
+        "35M": esm_lib.pretrained.esm2_t12_35M_UR50D,
+    }
+    esm, esm_alphabet = esm_loaders[esm_size]()
+    esm_batch_converter = esm_alphabet.get_batch_converter()
+    esm = esm.to(device)
     for p in esm.parameters():
         p.requires_grad = False
     if finetune_k > 0:
-        for layer in list(esm.encoder.layer)[-finetune_k:]:
+        for layer in list(esm.layers)[-finetune_k:]:
             for p in layer.parameters():
                 p.requires_grad = True
-        for p in esm.encoder.emb_layer_norm_after.parameters():
+        # Unfreeze emb_layer_norm_after equivalent
+        for p in esm.emb_layer_norm_after.parameters():
             p.requires_grad = True
 
     # ── Load ChemBERTa ──────────────────────────────────────────────────
@@ -2976,7 +2982,7 @@ def run_finetune_bica_v2(exp_name: str):
     # ponytail: reuse existing bica_v2 builder — lig_dim from ChemBERTa, prot_dim from ESM-2
     cb_dim = cb.config.hidden_size  # typically 600 for ChemBERTa-zinc-base
     from models.bica_v2 import build_bica_v2
-    bica = build_bica_v2(protein_seq_dim=esm_dim, ligand_atom_dim=cb_dim,
+    bica = build_bica_v2(protein_dim=esm_dim, ligand_dim=cb_dim,
                          hidden_dim=128, num_heads=4, dropout=0.1).to(device)
     n_params = (count_parameters(bica) +
                 sum(p.numel() for p in esm.parameters() if p.requires_grad) +
@@ -2993,8 +2999,10 @@ def run_finetune_bica_v2(exp_name: str):
 
     # ── Tokenize ────────────────────────────────────────────────────────
     def tokenize_prot(seqs):
-        return esm_tok(seqs, return_tensors="pt", padding=True,
-                       truncation=True, max_length=512)
+        data = [(f"p{i}", s[:512]) for i, s in enumerate(seqs)]
+        _, _, tokens = esm_batch_converter(data)
+        mask = (tokens != esm_alphabet.padding_idx).long()
+        return {"input_ids": tokens, "attention_mask": mask}
     def tokenize_lig(smiles_list):
         return cb_tok(smiles_list, return_tensors="pt", padding=True,
                       truncation=True, max_length=256)
@@ -3032,7 +3040,8 @@ def run_finetune_bica_v2(exp_name: str):
             yb = yb.to(device)
 
             with torch.set_grad_enabled(finetune_k > 0):
-                prot_out = esm(input_ids=pid, attention_mask=pmask).last_hidden_state
+                prot_out = esm(pid, repr_layers=[esm.num_layers])
+                prot_out = prot_out["representations"][esm.num_layers]
                 lig_out  = cb(input_ids=lid, attention_mask=lmask).last_hidden_state
 
             # Create masks: 1 = padding, 0 = real token (matching bica_v2 convention)
@@ -3052,12 +3061,22 @@ def run_finetune_bica_v2(exp_name: str):
         # ── Validation ──────────────────────────────────────────────
         esm.eval(); cb.eval(); bica.eval()
         with torch.no_grad():
-            p_vl = esm(input_ids=tok_p_vl["input_ids"].to(device),
-                       attention_mask=tok_p_vl["attention_mask"].to(device))
+            # Batched protein encoding to avoid OOM
+            MAX_PROT_PER_BATCH = 64
+            all_p_out = []
+            all_l_out = []
+            tok_p_vl_ids = tok_p_vl["input_ids"].to(device)
+            tok_p_vl_mask = tok_p_vl["attention_mask"].bool().to(device)
+            for p_start in range(0, len(tok_p_vl_ids), MAX_PROT_PER_BATCH):
+                p_end = min(p_start + MAX_PROT_PER_BATCH, len(tok_p_vl_ids))
+                p_batch = esm(tok_p_vl_ids[p_start:p_end],
+                              repr_layers=[esm.num_layers])
+                all_p_out.append(p_batch["representations"][esm.num_layers].cpu())
+            p_vl = torch.cat(all_p_out, dim=0).to(device)
             l_vl = cb(input_ids=tok_l_vl["input_ids"].to(device),
                       attention_mask=tok_l_vl["attention_mask"].to(device))
-            val_pred = bica(p_vl.last_hidden_state, l_vl.last_hidden_state,
-                           ~tok_p_vl["attention_mask"].bool().to(device),
+            val_pred = bica(p_vl, l_vl.last_hidden_state,
+                           ~tok_p_vl_mask,
                            ~tok_l_vl["attention_mask"].bool().to(device))
             val_pred = val_pred.cpu().numpy().ravel()
 
@@ -3086,20 +3105,32 @@ def run_finetune_bica_v2(exp_name: str):
     esm.eval(); cb.eval(); bica.eval()
 
     with torch.no_grad():
-        p_vl2 = esm(input_ids=tok_p_vl["input_ids"].to(device),
-                    attention_mask=tok_p_vl["attention_mask"].to(device))
+        # Validation (batched)
+        all_p_vl2 = []
+        tok_p_vl_ids2 = tok_p_vl["input_ids"].to(device)
+        for p_start in range(0, len(tok_p_vl_ids2), MAX_PROT_PER_BATCH):
+            p_end = min(p_start + MAX_PROT_PER_BATCH, len(tok_p_vl_ids2))
+            pb = esm(tok_p_vl_ids2[p_start:p_end], repr_layers=[esm.num_layers])
+            all_p_vl2.append(pb["representations"][esm.num_layers].cpu())
+        p_vl2 = torch.cat(all_p_vl2, dim=0).to(device)
         l_vl2 = cb(input_ids=tok_l_vl["input_ids"].to(device),
                    attention_mask=tok_l_vl["attention_mask"].to(device))
-        val_pred2 = bica(p_vl2.last_hidden_state, l_vl2.last_hidden_state,
+        val_pred2 = bica(p_vl2, l_vl2.last_hidden_state,
                         ~tok_p_vl["attention_mask"].bool().to(device),
                         ~tok_l_vl["attention_mask"].bool().to(device))
         val_pred2 = val_pred2.cpu().numpy().ravel()
 
-        p_te = esm(input_ids=tok_p_te["input_ids"].to(device),
-                   attention_mask=tok_p_te["attention_mask"].to(device))
+        # Test (batched)
+        all_p_te = []
+        tok_p_te_ids = tok_p_te["input_ids"].to(device)
+        for p_start in range(0, len(tok_p_te_ids), MAX_PROT_PER_BATCH):
+            p_end = min(p_start + MAX_PROT_PER_BATCH, len(tok_p_te_ids))
+            pb = esm(tok_p_te_ids[p_start:p_end], repr_layers=[esm.num_layers])
+            all_p_te.append(pb["representations"][esm.num_layers].cpu())
+        p_te = torch.cat(all_p_te, dim=0).to(device)
         l_te = cb(input_ids=tok_l_te["input_ids"].to(device),
                   attention_mask=tok_l_te["attention_mask"].to(device))
-        test_pred = bica(p_te.last_hidden_state, l_te.last_hidden_state,
+        test_pred = bica(p_te, l_te.last_hidden_state,
                         ~tok_p_te["attention_mask"].bool().to(device),
                         ~tok_l_te["attention_mask"].bool().to(device))
         test_pred = test_pred.cpu().numpy().ravel()
