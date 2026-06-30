@@ -3044,9 +3044,9 @@ def run_finetune_bica_v2(exp_name: str):
                 prot_out = prot_out["representations"][esm.num_layers]
                 lig_out  = cb(input_ids=lid, attention_mask=lmask).last_hidden_state
 
-            # Create masks: 1 = padding, 0 = real token (matching bica_v2 convention)
-            prot_mask = ~pmask.bool()
-            lig_mask  = ~lmask.bool()
+            # Create masks: 1 = real, 0 = pad (matching bica_v2 convention)
+            prot_mask = pmask.bool()
+            lig_mask  = lmask.bool()
 
             pred = bica(prot_out, lig_out, prot_mask, lig_mask)
             loss = criterion(pred, yb)
@@ -3076,8 +3076,8 @@ def run_finetune_bica_v2(exp_name: str):
             l_vl = cb(input_ids=tok_l_vl["input_ids"].to(device),
                       attention_mask=tok_l_vl["attention_mask"].to(device))
             val_pred = bica(p_vl, l_vl.last_hidden_state,
-                           ~tok_p_vl_mask,
-                           ~tok_l_vl["attention_mask"].bool().to(device))
+                           tok_p_vl_mask,
+                           tok_l_vl["attention_mask"].bool().to(device))
             val_pred = val_pred.cpu().numpy().ravel()
 
         vm = compute_metrics(y_vl, val_pred)
@@ -3116,8 +3116,8 @@ def run_finetune_bica_v2(exp_name: str):
         l_vl2 = cb(input_ids=tok_l_vl["input_ids"].to(device),
                    attention_mask=tok_l_vl["attention_mask"].to(device))
         val_pred2 = bica(p_vl2, l_vl2.last_hidden_state,
-                        ~tok_p_vl["attention_mask"].bool().to(device),
-                        ~tok_l_vl["attention_mask"].bool().to(device))
+                        tok_p_vl["attention_mask"].bool().to(device),
+                        tok_l_vl["attention_mask"].bool().to(device))
         val_pred2 = val_pred2.cpu().numpy().ravel()
 
         # Test (batched)
@@ -3131,8 +3131,8 @@ def run_finetune_bica_v2(exp_name: str):
         l_te = cb(input_ids=tok_l_te["input_ids"].to(device),
                   attention_mask=tok_l_te["attention_mask"].to(device))
         test_pred = bica(p_te, l_te.last_hidden_state,
-                        ~tok_p_te["attention_mask"].bool().to(device),
-                        ~tok_l_te["attention_mask"].bool().to(device))
+                        tok_p_te["attention_mask"].bool().to(device),
+                        tok_l_te["attention_mask"].bool().to(device))
         test_pred = test_pred.cpu().numpy().ravel()
 
     val_m  = compute_metrics(y_vl, val_pred2)
