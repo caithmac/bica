@@ -1,0 +1,42 @@
+[
+  {
+    "dataset": "BindingDB_filtered",
+    "N": 24700,
+    "N_train": 19760,
+    "N_test": 4940,
+    "RMSE": 1.1341,
+    "Pearson_R": 0.2893,
+    "p_value": 0.0,
+    "split": "scaffold"
+  },
+  {
+    "dataset": "LeakyPDB",
+    "N": 19121,
+    "N_train": 11231,
+    "N_test": 4838,
+    "RMSE": 1.5606,
+    "Pearson_R": 0.4832,
+    "p_value": 0.0,
+    "split": "new_split"
+  },
+  {
+    "dataset": "Mpro",
+    "N": 2062,
+    "N_train": 1650,
+    "N_test": 412,
+    "RMSE": 1.4522,
+    "Pearson_R": 0.2668,
+    "p_value": 0.0,
+    "split": "scaffold"
+  },
+  {
+    "dataset": "USP7",
+    "N": 1799,
+    "N_train": 1440,
+    "N_test": 359,
+    "RMSE": 0.4622,
+    "Pearson_R": 0.924,
+    "p_value": 0.0,
+    "split": "scaffold"
+  }
+]
