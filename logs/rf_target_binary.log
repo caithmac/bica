@@ -1,0 +1,13 @@
+
+============================================================
+  Experiment: rf_ecfp4_target_binary
+  Model: tree  Ligand: ecfp4_1024  Protein: target_binary
+============================================================
+[data] Loading raw data from cache: E:\BICA\cache\bindingdb_raw.pkl
+[data] Computing scaffold splits for seed=42 …
+[features] Computing ligand features: ecfp4_1024
+[features] Computing protein features: target_binary
+[run] Feature dim: 1034  train=17,312  val=2,673  test=4,715
+[run] Val  → RMSE=1.2924  Pearson=0.4236  Spearman=0.3384  (n=2,673)
+[run] Test → RMSE=1.2534  Pearson=0.5618  Spearman=0.4924  (n=4,715)
+[diary] Logged: rf_ecfp4_target_binary | test_rmse=1.2534 pearson=0.5618 spearman=0.4924

@@ -1,0 +1,34 @@
+
+============================================================
+  Experiment: mlp_ecfp4_esm2_8M_ft_k3  [MLP + ESM-2 FT k=3]
+============================================================
+[data] Loading raw data from cache: E:\BICA\cache\bindingdb_raw.pkl
+[ft_mlp] Computing ECFP4 ligand features …
+[ft_mlp] Loading ESM-2 8M (6 layers, 320d) …
+Some weights of EsmModel were not initialized from the model checkpoint at facebook/esm2_t6_8M_UR50D and are newly initialized: ['esm.pooler.dense.bias', 'esm.pooler.dense.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+[ft_mlp] Unfrozen params: 3,699,520 / 7,840,121
+  epoch   1  val_rmse=1.2327  val_pearson=0.5212
+  epoch   5  val_rmse=1.2523  val_pearson=0.5410
+  epoch  10  val_rmse=1.2210  val_pearson=0.5745
+  epoch  15  val_rmse=1.2049  val_pearson=0.5718
+  epoch  20  val_rmse=1.2005  val_pearson=0.5837
+  epoch  25  val_rmse=1.2074  val_pearson=0.5901
+  epoch  30  val_rmse=1.1741  val_pearson=0.5984
+  epoch  35  val_rmse=1.1699  val_pearson=0.6000
+  epoch  40  val_rmse=1.1802  val_pearson=0.6093
+  epoch  45  val_rmse=1.1760  val_pearson=0.6081
+  epoch  50  val_rmse=1.1720  val_pearson=0.6136
+  epoch  55  val_rmse=1.1890  val_pearson=0.6085
+  epoch  60  val_rmse=1.1445  val_pearson=0.6152
+  epoch  65  val_rmse=1.1393  val_pearson=0.6247
+  epoch  70  val_rmse=1.1178  val_pearson=0.6388
+  epoch  75  val_rmse=1.1201  val_pearson=0.6322
+  epoch  80  val_rmse=1.1341  val_pearson=0.6237
+  epoch  85  val_rmse=1.1396  val_pearson=0.6309
+  epoch  90  val_rmse=1.1014  val_pearson=0.6468
+  epoch  95  val_rmse=1.1217  val_pearson=0.6403
+  epoch 100  val_rmse=1.1006  val_pearson=0.6447
+[ft_mlp] Val  → RMSE=1.0954  Pearson=0.6499  Spearman=0.5854  (n=2,673)
+[ft_mlp] Test → RMSE=1.1134  Pearson=0.6865  Spearman=0.6067  (n=4,715)
+[diary] Logged: mlp_ecfp4_esm2_8M_ft_k3 | test_rmse=1.1134 pearson=0.6865 spearman=0.6067

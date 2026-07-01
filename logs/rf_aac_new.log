@@ -1,0 +1,12 @@
+
+============================================================
+  Experiment: rf_ecfp4_aac
+  Model: tree  Ligand: ecfp4_1024  Protein: aac_20
+============================================================
+[data] Loading raw data from cache: E:\BICA\cache\bindingdb_raw.pkl
+[features] Computing ligand features: ecfp4_1024
+[features] Computing protein features: aac_20
+[run] Feature dim: 1044  train=17,312  val=2,673  test=4,715
+[run] Val  → RMSE=0.9869  Pearson=0.7233  Spearman=0.6586  (n=2,673)
+[run] Test → RMSE=1.0065  Pearson=0.7467  Spearman=0.6737  (n=4,715)
+[diary] Logged: rf_ecfp4_aac | test_rmse=1.0065 pearson=0.7467 spearman=0.6737

@@ -1,0 +1,176 @@
+
+============================================================
+  Experiment: gp_ecfp4_esm2_8M
+  Model: gp  Ligand: ecfp4_1024  Protein: esm2_8M_320
+============================================================
+[data] Loading raw data from cache: E:\BICA\cache\bindingdb_raw.pkl
+[features] Computing ligand features: ecfp4_1024
+[features] Computing protein features: esm2_8M_320
+Some weights of EsmModel were not initialized from the model checkpoint at facebook/esm2_t6_8M_UR50D and are newly initialized: ['esm.pooler.dense.bias', 'esm.pooler.dense.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+  [esm2_8M] Processing batch 1/1082
+  [esm2_8M] Processing batch 11/1082
+  [esm2_8M] Processing batch 21/1082
+  [esm2_8M] Processing batch 31/1082
+  [esm2_8M] Processing batch 41/1082
+  [esm2_8M] Processing batch 51/1082
+  [esm2_8M] Processing batch 61/1082
+  [esm2_8M] Processing batch 71/1082
+  [esm2_8M] Processing batch 81/1082
+  [esm2_8M] Processing batch 91/1082
+  [esm2_8M] Processing batch 101/1082
+  [esm2_8M] Processing batch 111/1082
+  [esm2_8M] Processing batch 121/1082
+  [esm2_8M] Processing batch 131/1082
+  [esm2_8M] Processing batch 141/1082
+  [esm2_8M] Processing batch 151/1082
+  [esm2_8M] Processing batch 161/1082
+  [esm2_8M] Processing batch 171/1082
+  [esm2_8M] Processing batch 181/1082
+  [esm2_8M] Processing batch 191/1082
+  [esm2_8M] Processing batch 201/1082
+  [esm2_8M] Processing batch 211/1082
+  [esm2_8M] Processing batch 221/1082
+  [esm2_8M] Processing batch 231/1082
+  [esm2_8M] Processing batch 241/1082
+  [esm2_8M] Processing batch 251/1082
+  [esm2_8M] Processing batch 261/1082
+  [esm2_8M] Processing batch 271/1082
+  [esm2_8M] Processing batch 281/1082
+  [esm2_8M] Processing batch 291/1082
+  [esm2_8M] Processing batch 301/1082
+  [esm2_8M] Processing batch 311/1082
+  [esm2_8M] Processing batch 321/1082
+  [esm2_8M] Processing batch 331/1082
+  [esm2_8M] Processing batch 341/1082
+  [esm2_8M] Processing batch 351/1082
+  [esm2_8M] Processing batch 361/1082
+  [esm2_8M] Processing batch 371/1082
+  [esm2_8M] Processing batch 381/1082
+  [esm2_8M] Processing batch 391/1082
+  [esm2_8M] Processing batch 401/1082
+  [esm2_8M] Processing batch 411/1082
+  [esm2_8M] Processing batch 421/1082
+  [esm2_8M] Processing batch 431/1082
+  [esm2_8M] Processing batch 441/1082
+  [esm2_8M] Processing batch 451/1082
+  [esm2_8M] Processing batch 461/1082
+  [esm2_8M] Processing batch 471/1082
+  [esm2_8M] Processing batch 481/1082
+  [esm2_8M] Processing batch 491/1082
+  [esm2_8M] Processing batch 501/1082
+  [esm2_8M] Processing batch 511/1082
+  [esm2_8M] Processing batch 521/1082
+  [esm2_8M] Processing batch 531/1082
+  [esm2_8M] Processing batch 541/1082
+  [esm2_8M] Processing batch 551/1082
+  [esm2_8M] Processing batch 561/1082
+  [esm2_8M] Processing batch 571/1082
+  [esm2_8M] Processing batch 581/1082
+  [esm2_8M] Processing batch 591/1082
+  [esm2_8M] Processing batch 601/1082
+  [esm2_8M] Processing batch 611/1082
+  [esm2_8M] Processing batch 621/1082
+  [esm2_8M] Processing batch 631/1082
+  [esm2_8M] Processing batch 641/1082
+  [esm2_8M] Processing batch 651/1082
+  [esm2_8M] Processing batch 661/1082
+  [esm2_8M] Processing batch 671/1082
+  [esm2_8M] Processing batch 681/1082
+  [esm2_8M] Processing batch 691/1082
+  [esm2_8M] Processing batch 701/1082
+  [esm2_8M] Processing batch 711/1082
+  [esm2_8M] Processing batch 721/1082
+  [esm2_8M] Processing batch 731/1082
+  [esm2_8M] Processing batch 741/1082
+  [esm2_8M] Processing batch 751/1082
+  [esm2_8M] Processing batch 761/1082
+  [esm2_8M] Processing batch 771/1082
+  [esm2_8M] Processing batch 781/1082
+  [esm2_8M] Processing batch 791/1082
+  [esm2_8M] Processing batch 801/1082
+  [esm2_8M] Processing batch 811/1082
+  [esm2_8M] Processing batch 821/1082
+  [esm2_8M] Processing batch 831/1082
+  [esm2_8M] Processing batch 841/1082
+  [esm2_8M] Processing batch 851/1082
+  [esm2_8M] Processing batch 861/1082
+  [esm2_8M] Processing batch 871/1082
+  [esm2_8M] Processing batch 881/1082
+  [esm2_8M] Processing batch 891/1082
+  [esm2_8M] Processing batch 901/1082
+  [esm2_8M] Processing batch 911/1082
+  [esm2_8M] Processing batch 921/1082
+  [esm2_8M] Processing batch 931/1082
+  [esm2_8M] Processing batch 941/1082
+  [esm2_8M] Processing batch 951/1082
+  [esm2_8M] Processing batch 961/1082
+  [esm2_8M] Processing batch 971/1082
+  [esm2_8M] Processing batch 981/1082
+  [esm2_8M] Processing batch 991/1082
+  [esm2_8M] Processing batch 1001/1082
+  [esm2_8M] Processing batch 1011/1082
+  [esm2_8M] Processing batch 1021/1082
+  [esm2_8M] Processing batch 1031/1082
+  [esm2_8M] Processing batch 1041/1082
+  [esm2_8M] Processing batch 1051/1082
+  [esm2_8M] Processing batch 1061/1082
+  [esm2_8M] Processing batch 1071/1082
+  [esm2_8M] Processing batch 1081/1082
+Some weights of EsmModel were not initialized from the model checkpoint at facebook/esm2_t6_8M_UR50D and are newly initialized: ['esm.pooler.dense.bias', 'esm.pooler.dense.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+  [esm2_8M] Processing batch 1/168
+  [esm2_8M] Processing batch 11/168
+  [esm2_8M] Processing batch 21/168
+  [esm2_8M] Processing batch 31/168
+  [esm2_8M] Processing batch 41/168
+  [esm2_8M] Processing batch 51/168
+  [esm2_8M] Processing batch 61/168
+  [esm2_8M] Processing batch 71/168
+  [esm2_8M] Processing batch 81/168
+  [esm2_8M] Processing batch 91/168
+  [esm2_8M] Processing batch 101/168
+  [esm2_8M] Processing batch 111/168
+  [esm2_8M] Processing batch 121/168
+  [esm2_8M] Processing batch 131/168
+  [esm2_8M] Processing batch 141/168
+  [esm2_8M] Processing batch 151/168
+  [esm2_8M] Processing batch 161/168
+Some weights of EsmModel were not initialized from the model checkpoint at facebook/esm2_t6_8M_UR50D and are newly initialized: ['esm.pooler.dense.bias', 'esm.pooler.dense.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+  [esm2_8M] Processing batch 1/295
+  [esm2_8M] Processing batch 11/295
+  [esm2_8M] Processing batch 21/295
+  [esm2_8M] Processing batch 31/295
+  [esm2_8M] Processing batch 41/295
+  [esm2_8M] Processing batch 51/295
+  [esm2_8M] Processing batch 61/295
+  [esm2_8M] Processing batch 71/295
+  [esm2_8M] Processing batch 81/295
+  [esm2_8M] Processing batch 91/295
+  [esm2_8M] Processing batch 101/295
+  [esm2_8M] Processing batch 111/295
+  [esm2_8M] Processing batch 121/295
+  [esm2_8M] Processing batch 131/295
+  [esm2_8M] Processing batch 141/295
+  [esm2_8M] Processing batch 151/295
+  [esm2_8M] Processing batch 161/295
+  [esm2_8M] Processing batch 171/295
+  [esm2_8M] Processing batch 181/295
+  [esm2_8M] Processing batch 191/295
+  [esm2_8M] Processing batch 201/295
+  [esm2_8M] Processing batch 211/295
+  [esm2_8M] Processing batch 221/295
+  [esm2_8M] Processing batch 231/295
+  [esm2_8M] Processing batch 241/295
+  [esm2_8M] Processing batch 251/295
+  [esm2_8M] Processing batch 261/295
+  [esm2_8M] Processing batch 271/295
+  [esm2_8M] Processing batch 281/295
+  [esm2_8M] Processing batch 291/295
+[run] Feature dim: 1344  train=17,312  val=2,673  test=4,715
+  [gpytorch] iter 20/50  loss=2.7048
+  [gpytorch] iter 40/50  loss=1.7468
+[run] Val  → RMSE=1.3241  Pearson=0.4794  Spearman=0.4279  (n=2,673)
+[run] Test → RMSE=1.4388  Pearson=0.4685  Spearman=0.4411  (n=4,715)
+[diary] Logged: gp_ecfp4_esm2_8M | test_rmse=1.4388 pearson=0.4685 spearman=0.4411

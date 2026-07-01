@@ -1,0 +1,48 @@
+
+============================================================
+  Experiment: gp_ecfp4_tanimoto
+  Model: gp  Ligand: ecfp4_1024  Protein: none
+============================================================
+[data] Loading raw data from cache: E:\BICA\cache\bindingdb_raw.pkl
+[features] Computing ligand features: ecfp4_1024
+[run] Feature dim: 1024  train=17,312  val=2,673  test=4,715
+  [gpytorch] iter 20/50  loss=1.4818
+  [gpytorch] iter 40/50  loss=1.5011
+[run] Val  → RMSE=1.3106  Pearson=0.4576  Spearman=0.3382  (n=2,673)
+[run] Test → RMSE=1.1849  Pearson=0.6276  Spearman=0.5276  (n=4,715)
+[diary] Logged: gp_ecfp4_tanimoto | test_rmse=1.1849 pearson=0.6276 spearman=0.5276
+
+============================================================
+  Experiment: gp_ecfp4_rbf
+  Model: gp  Ligand: ecfp4_1024  Protein: none
+============================================================
+[data] Loading raw data from cache: E:\BICA\cache\bindingdb_raw.pkl
+[features] Computing ligand features: ecfp4_1024
+[run] Feature dim: 1024  train=17,312  val=2,673  test=4,715
+  [gpytorch] iter 20/50  loss=2.2488
+  [gpytorch] iter 40/50  loss=1.6349
+[run] Val  → RMSE=1.2346  Pearson=0.5043  Spearman=0.3886  (n=2,673)
+[run] Test → RMSE=1.2383  Pearson=0.5857  Spearman=0.5168  (n=4,715)
+[diary] Logged: gp_ecfp4_rbf | test_rmse=1.2383 pearson=0.5857 spearman=0.5168
+
+============================================================
+  Experiment: gp_ecfp4_matern
+  Model: gp  Ligand: ecfp4_1024  Protein: none
+============================================================
+[data] Loading raw data from cache: E:\BICA\cache\bindingdb_raw.pkl
+[features] Computing ligand features: ecfp4_1024
+[run] Feature dim: 1024  train=17,312  val=2,673  test=4,715
+  [gpytorch] iter 20/50  loss=1.8875
+  [gpytorch] iter 40/50  loss=1.6305
+[run] Val  → RMSE=1.2308  Pearson=0.5154  Spearman=0.3931  (n=2,673)
+[run] Test → RMSE=1.2388  Pearson=0.5849  Spearman=0.5210  (n=4,715)
+[diary] Logged: gp_ecfp4_matern | test_rmse=1.2388 pearson=0.5849 spearman=0.5210
+
+============================================================
+  Experiment: gp_ecfp4_rq
+  Model: gp  Ligand: ecfp4_1024  Protein: none
+============================================================
+[data] Loading raw data from cache: E:\BICA\cache\bindingdb_raw.pkl
+[features] Computing ligand features: ecfp4_1024
+[run] Feature dim: 1024  train=17,312  val=2,673  test=4,715
+  [gpytorch] iter 20/50  loss=1.5339
