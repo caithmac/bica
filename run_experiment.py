@@ -39,23 +39,41 @@ from rdkit import RDLogger
 # Disable all logs from the rdApp (warnings, info, etc.)
 RDLogger.DisableLog('rdApp.*')
 
-# ── Active dataset/seed — set by CLI args before any run() call ───────────────
+# ── Active dataset/seed/split — set by CLI args before any run() call ──────────
 _ACTIVE_DATASET = "bindingdb"   # "bindingdb" | "leakypdb"
 _ACTIVE_SEED    = SPLIT_SEED    # default 42
+_ACTIVE_SPLIT   = "scaffold"    # "scaffold" | "random"
 
 
 def _get_splits():
     """Return (train_df, val_df, test_df) for the currently active dataset/seed."""
     if _ACTIVE_DATASET == "leakypdb":
         return get_leakypdb_splits()
+    elif _ACTIVE_SPLIT == "random":
+        return _random_split(_ACTIVE_SEED)
     else:
         return get_splits_for_seed(_ACTIVE_SEED)
+
+
+def _random_split(seed):
+    """Random 70/10/20 split using sklearn.train_test_split."""
+    from sklearn.model_selection import train_test_split
+    from harness.data import load_raw
+    df = load_raw()
+    idx = np.arange(len(df))
+    train_idx, temp_idx = train_test_split(idx, test_size=0.30, random_state=seed)
+    val_idx, test_idx = train_test_split(temp_idx, test_size=2/3, random_state=seed)
+    return (df.iloc[train_idx].reset_index(drop=True),
+            df.iloc[val_idx].reset_index(drop=True),
+            df.iloc[test_idx].reset_index(drop=True))
 
 
 def _split_tag() -> str:
     """Short string used in experiment_id and split_type field."""
     if _ACTIVE_DATASET == "leakypdb":
         return "leakypdb_cl1cl2"
+    if _ACTIVE_SPLIT == "random":
+        return f"random_70_10_20_seed{_ACTIVE_SEED}"
     return f"scaffold_bemis_murcko_seed{_ACTIVE_SEED}"
 
 
@@ -122,6 +140,16 @@ register("rf_ecfp4_dipeptide",
     group="trees",
     model_family="tree",
     ligand_repr="ecfp4_1024", protein_repr="dipeptide_400", fusion="concat",
+)
+register("rf_ecfp4_esm2_8M",
+    group="trees",
+    model_family="tree",
+    ligand_repr="ecfp4_1024", protein_repr="esm2_8M_320", fusion="concat",
+)
+register("rf_ecfp4_esm2_35M",
+    group="trees",
+    model_family="tree",
+    ligand_repr="ecfp4_1024", protein_repr="esm2_35M_480", fusion="concat",
 )
 register("xgb_ecfp4_aac",
     group="trees",
@@ -1119,7 +1147,7 @@ register("transformer_seq_smiles_bpe_1000_protein_char",
 
 def build_features(cfg: dict, train_df, val_df, test_df):
     """Build and return (X_train, X_val, X_test, y_train, y_val, y_test)."""
-    from harness.config import LABEL_COL, SMILES_COL, PROTEIN_COL
+    from harness.config import LABEL_COL, SMILES_COL, PROTEIN_COL, TARGET_ID_COL
     from pathlib import Path
 
     FEAT_CACHE = Path("cache/features")
@@ -1143,6 +1171,11 @@ def build_features(cfg: dict, train_df, val_df, test_df):
         return _get_or_compute(f"{tag}_{part}", lambda: _compute_lig(smiles, lig_repr), part)
 
     def prot_feat(df, part):
+        if prot_repr.startswith("target_binary"):
+            # Use Target_ID column instead of protein sequence
+            tids = df[TARGET_ID_COL].tolist()
+            tag = f"prot_{prot_repr}"
+            return _get_or_compute(f"{tag}_{part}", lambda: _compute_prot(tids, prot_repr), part)
         seqs = df[PROTEIN_COL].tolist()
         tag = f"prot_{prot_repr}"
         return _get_or_compute(f"{tag}_{part}", lambda: _compute_prot(seqs, prot_repr), part)
@@ -1231,6 +1264,11 @@ def _compute_prot(seqs, repr_name):
         return F.amino_acid_composition(seqs)
     elif repr_name == "esmc_300M":
         return F.esmc_embeddings(seqs, model_name="esmc_300m")
+    elif repr_name.startswith("target_binary"):
+        # Parse n_bits from repr_name: "target_binary_7" → 7 bits
+        parts = repr_name.split("_")
+        n_bits = int(parts[2]) if len(parts) >= 3 and parts[2].isdigit() else None
+        return F.target_binary(seqs, n_bits=n_bits)
     else:
         raise ValueError(f"Unknown protein repr: {repr_name}")
 
@@ -2664,6 +2702,35 @@ def register_full_grid():
 register_full_grid()
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Fischer target-encoding experiments (replaces AAC with binary Target_ID)
+# ─────────────────────────────────────────────────────────────────────────────
+
+register("rf_ecfp4_target_binary",
+    group="target_encoding",
+    model_family="tree",
+    ligand_repr="ecfp4_1024", protein_repr="target_binary", fusion="concat",
+    notes="Fischer: RF + ECFP4 + binary target ID (replaces AAC). Auto bit-width.",
+)
+register("xgb_ecfp4_target_binary",
+    group="target_encoding",
+    model_family="tree",
+    ligand_repr="ecfp4_1024", protein_repr="target_binary", fusion="concat",
+    notes="Fischer: XGB + ECFP4 + binary target ID (replaces AAC). Auto bit-width.",
+)
+register("rf_ecfp6_target_binary",
+    group="target_encoding",
+    model_family="tree",
+    ligand_repr="ecfp6_1024", protein_repr="target_binary", fusion="concat",
+    notes="Fischer: RF + ECFP6 + binary target ID.",
+)
+register("xgb_chemberta_target_binary",
+    group="target_encoding",
+    model_family="tree",
+    ligand_repr="chemberta_600", protein_repr="target_binary", fusion="concat",
+    notes="Fischer: XGB + ChemBERTa + binary target ID.",
+)
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Fine-tuning experiments (reviewer response)
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -2970,6 +3037,7 @@ def run_finetune_bica_v2(exp_name: str):
     print(f"[ft_bica] Loading ChemBERTa {cb_model_name} …")
     cb_tok = AutoTokenizer.from_pretrained(cb_model_name, local_files_only=True)
     cb = AutoModel.from_pretrained(cb_model_name, local_files_only=True).to(device)
+    print(f"[ft_bica] ChemBERTa loaded on device, hidden_size={cb.config.hidden_size}")
     for p in cb.parameters():
         p.requires_grad = False
     if finetune_k > 0:
@@ -2984,6 +3052,7 @@ def run_finetune_bica_v2(exp_name: str):
     from models.bica_v2 import build_bica_v2
     bica = build_bica_v2(protein_dim=esm_dim, ligand_dim=cb_dim,
                          hidden_dim=128, num_heads=4, dropout=0.1).to(device)
+    print(f"[ft_bica] BiCA v2 built ({count_parameters(bica):,} params)")
     n_params = (count_parameters(bica) +
                 sum(p.numel() for p in esm.parameters() if p.requires_grad) +
                 sum(p.numel() for p in cb.parameters() if p.requires_grad))
@@ -2998,6 +3067,7 @@ def run_finetune_bica_v2(exp_name: str):
     criterion = nn.MSELoss()
 
     # ── Tokenize ────────────────────────────────────────────────────────
+    print(f"[ft_bica] Tokenizing {len(train_df)} train + {len(val_df)} val + {len(test_df)} test sequences …")
     def tokenize_prot(seqs):
         data = [(f"p{i}", s[:512]) for i, s in enumerate(seqs)]
         _, _, tokens = esm_batch_converter(data)
@@ -3023,7 +3093,10 @@ def run_finetune_bica_v2(exp_name: str):
         tok_p_tr["input_ids"], tok_p_tr["attention_mask"],
         tok_l_tr["input_ids"], tok_l_tr["attention_mask"],
         torch.tensor(y_tr, dtype=torch.float32).unsqueeze(1))
+    print(f"[ft_bica] Tokenization done. Building DataLoader …")
+    import sys; sys.stdout.flush()
     loader = DataLoader(ds, batch_size=min(16, BATCH_SIZE // 2), shuffle=True)
+    print(f"[ft_bica] DataLoader built. Starting training …"); sys.stdout.flush()
 
     best_rmse, best_state, patience_ctr = float("inf"), None, 0
     t0 = time.time()
@@ -3170,12 +3243,16 @@ def main():
                         help="Dataset to use (default: bindingdb)")
     parser.add_argument("--seed",    type=int, default=SPLIT_SEED,
                         help=f"Scaffold split seed (default: {SPLIT_SEED}, bindingdb only)")
+    parser.add_argument("--split",   type=str, default="scaffold",
+                        choices=["scaffold", "random"],
+                        help="Split type: scaffold or random (default: scaffold)")
     args = parser.parse_args()
 
-    # Set active dataset/seed globals before any run() call
-    global _ACTIVE_DATASET, _ACTIVE_SEED
+    # Set active dataset/seed/split globals before any run() call
+    global _ACTIVE_DATASET, _ACTIVE_SEED, _ACTIVE_SPLIT
     _ACTIVE_DATASET = args.dataset
     _ACTIVE_SEED    = args.seed
+    _ACTIVE_SPLIT   = args.split
 
     if args.list:
         for name, cfg in EXPERIMENTS.items():
