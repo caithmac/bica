@@ -23,7 +23,7 @@ from rdkit.Chem.Scaffolds import MurckoScaffold
 from harness.config import (
     DATASET_NAME, DATASET_CONFIG,
     LEAKYPDB_NAME, LEAKYPDB_CONFIG,
-    SMILES_COL, PROTEIN_COL, LABEL_COL,
+    SMILES_COL, PROTEIN_COL, LABEL_COL, TARGET_ID_COL,
     TRAIN_FRAC, VAL_FRAC, SPLIT_SEED,
     CACHE_DIR, SPLIT_DIR,
 )
@@ -157,7 +157,10 @@ def load_raw() -> pd.DataFrame:
         split_key = list(ds.keys())[0]
         df = ds[split_key].to_pandas()
 
-    df = df[[SMILES_COL, PROTEIN_COL, LABEL_COL]].dropna().reset_index(drop=True)
+    cols = [SMILES_COL, PROTEIN_COL, LABEL_COL]
+    if TARGET_ID_COL in df.columns:
+        cols.append(TARGET_ID_COL)
+    df = df[cols].dropna(subset=[SMILES_COL, PROTEIN_COL, LABEL_COL]).reset_index(drop=True)
     df.to_pickle(cache_file)
     print(f"[data] Cached {len(df):,} rows → {cache_file}")
     return df

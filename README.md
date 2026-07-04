@@ -1,28 +1,34 @@
 # Drug-Target Binding Affinity Benchmark
 
 A systematic benchmark of machine learning models for drug-target binding affinity
-prediction, evaluated on BindingDB with a rigorous scaffold-based split. The central
-contribution is **BiCA v2** — a Bidirectional Cross-Attention model that performs
-joint reasoning over protein residue sequences and ligand token sequences.
+prediction, evaluated on BindingDB under a rigorous scaffold-based split. The central
+finding: **tree ensembles with simple fingerprints outperform every deep learning
+architecture tested**, including transformers, GNNs, and cross-attention models.
+
+Two cross-attention models (BiCA v1 and BiCA v2/ChemCross) are included. BiCA v2
+performs bidirectional cross-attention over protein residue sequences and ligand
+token sequences, producing interpretable attention maps.
 
 ---
 
-## Contents
+## Repository Structure
 
 ```
 harness/          Data loading, featurizers, training loops, metrics, logging
-models/           All model implementations (see below)
-interpret/        Interpretability library — attention maps, Integrated Gradients, SHAP
-run_experiment.py Experiment registry and runners (333 experiments total)
+models/           All model implementations
+interpret/        Interpretability — attention maps, Integrated Gradients, SHAP
+evaluation/       ASAP Polaris challenge evaluation protocol
+experiments/      Standalone experiment scripts (ASAP, cross-dataset, learning curves)
+scripts/          Analysis, figures, leaderboard generation, statistics
+run_experiment.py Main experiment registry and runners
 run_all.py        Master pipeline — runs all phases, resumable
-run_psichic_benchmark.py  PSICHIC baseline evaluation
-analyze_results.py        Leaderboard and analysis
-bootstrap_ci.py           Bootstrap confidence intervals
-diary/            Results, figures, and findings
-  results_diary.csv       All 333 experiment results
-  bootstrap_ci.csv        95% CIs for top models
-  FINDINGS.md             Full leaderboard and analysis
-  figures/                Attention maps, interpretability figures
+diary/            Results diary, findings
+  results_diary.csv   All experiment results
+  diary_clean.csv     Cleaned/deduplicated results
+  FINDINGS.md         Full leaderboard and analysis
+figures/          Paper figures (PDF)
+manuscript/       LaTeX source for the paper
+docs/             Supplementary documentation
 ```
 
 ---
@@ -33,14 +39,14 @@ diary/            Results, figures, and findings
 — 24,700 protein-ligand pairs with experimentally measured pKd values.
 
 **Split:** Bemis-Murcko scaffold split (seed 42), ensuring test compounds have
-structurally distinct scaffolds from training data. This is a harder and more
-realistic evaluation than random splits.
+structurally distinct scaffolds from training. This is harder and more realistic
+than random splits.
 
 | Partition | Size |
 |-----------|------|
 | Train     | 17,312 |
-| Val       | 2,673  |
-| Test      | 4,715  |
+| Val       | 2,673 |
+| Test      | 4,715 |
 
 **Metric:** RMSE on pKd (primary), Pearson R, Spearman R.
 
@@ -48,36 +54,36 @@ realistic evaluation than random splits.
 
 ## Results
 
-Best result per model family (seed 42, scaffold split):
+Best result per model family (seed 42, scaffold split, N=285 unique experiments):
 
-| Model | RMSE ↓ | Pearson R ↑ | Spearman R ↑ |
-|-------|--------|-------------|--------------|
-| RF (ECFP4 + AAC) | **1.007** | 0.747 | 0.674 |
-| XGBoost (ChemBERTa + ESM-2) | 1.047 | 0.722 | 0.652 |
-| LightGBM (ECFP4 + AAC) | 1.053 | 0.720 | 0.640 |
-| MLP (ChemBERTa + ESM-2) | 1.101 | 0.703 | 0.623 |
-| **BiCA v2** (ChemBERTa-77M + ESMC) | **1.102** | **0.702** | **0.631** |
-| PSICHIC fine-tuned | 1.176 | 0.631 | 0.548 |
-| PSICHIC zero-shot | 1.787 | 0.456 | 0.360 |
+| Model | RMSE ↓ | Pearson R ↑ |
+|-------|--------|-------------|
+| RF (ECFP4 + AAC) | **1.006** | 0.747 |
+| XGBoost (ECFP4 + ESM-2 8M) | 1.048 | 0.721 |
+| LightGBM (ECFP4 + AAC) | 1.053 | 0.720 |
+| MLP (ChemBERTa-5M + ESM-2 8M) | 1.074 | 0.716 |
+| BiCA v2 (ChemBERTa-77M + ESMC 300M) | 1.132 | 0.684 |
+| BiCA v1 (ChemBERTa-600 + ESM-2 8M) | 1.146 | 0.676 |
+| GP (Tanimoto kernel) | 1.179 | 0.642 |
+| PSICHIC fine-tuned | 1.176 | 0.631 |
+| LSTM (atom SMILES + char protein) | 1.146 | 0.654 |
+| Mamba | 1.158 | 0.648 |
+| CNN (distance matrix) | 1.109 | 0.690 |
+| GAT | 1.194 | 0.598 |
+| GCN | 1.202 | 0.640 |
+| Transformer (seq) | 1.210 | 0.606 |
+| Ridge (linear) | 1.254 | 0.522 |
 
-Multi-seed stability (seeds 42 / 123 / 456):
+Multi-seed stability (seeds 42/99/123/456):
 
 | Model | Mean RMSE | Std |
 |-------|-----------|-----|
-| RF (ECFP4 + AAC) | 1.044 | ±0.035 |
-| BiCA v2 | 1.108 | ±0.037 |
+| RF (ECFP4 + AAC) | 1.041 | ±0.028 |
+| MLP (ChemBERTa-5M + ESM-2 8M) | 1.127 | ±0.038 |
 
 ---
 
 ## BiCA v2 — Bidirectional Cross-Attention
-
-### Motivation
-
-Most binding affinity models use pretrained embeddings as fixed feature vectors —
-a protein is reduced to a single mean-pooled vector before any ligand information
-is seen. This discards the spatial structure of the sequence. BiCA v2 instead keeps
-both sequences intact and lets them attend to each other, so the model can learn
-*which residues matter for which ligand atoms* rather than averaging everything away.
 
 ### Architecture
 
@@ -86,121 +92,63 @@ Protein sequence          Ligand SMILES
 (L_prot residues)         (L_lig tokens)
       │                        │
   ESM-2 encoder            ChemBERTa-2
-  per-residue 480-dim      per-token  384-dim
+  per-residue              per-token
       │                        │
   Linear proj              Linear proj
-  → hidden_dim (256)       → hidden_dim (256)
       │                        │
       └──────────┬─────────────┘
                  │
      ┌───────────▼───────────┐
      │  CrossAttentionBlock  │  × 2 layers
-     │                       │
-     │  p→l: protein queries │  A_p2l ∈ (L_prot × L_lig)
-     │        ligand keys/val│  "which ligand tokens does
-     │                       │   each residue attend to?"
-     │  l→p: ligand queries  │  A_l2p ∈ (L_lig × L_prot)
-     │        protein keys/val  "which residues does each
-     │                       │   ligand token attend to?"
+     │  p→l + l→p attention  │
      │  Pre-LayerNorm        │
      │  FFN (GELU, 4× dim)   │
      │  DropPath residuals   │
      └───────────┬───────────┘
                  │
         ┌────────┴────────┐
-        │                 │
    AttentionPool      AttentionPool
    (protein)          (ligand)
-   scalar α_i         scalar β_j
-   per residue        per token
         │                 │
-   prot_vec (256)    lig_vec (256)
         └────────┬────────┘
-                 │  concat → 512-dim
-                 │
+                 │  concat
            Predictor MLP
-           512 → 256 → 1
                  │
                pKd̂
 ```
 
 **Key design choices:**
-
-- **True sequence attention** — not attention over a single CLS token, but over all
-  `L_prot` residues and all `L_lig` tokens simultaneously.
-- **Bidirectional** — protein-to-ligand *and* ligand-to-protein cross-attention in
-  each block. Both sides update based on the other.
-- **Pre-LayerNorm** — normalise before attention (more stable training than post-norm).
-- **Value-weighted attention** — at inference, attention weights are scaled by the L2
-  norm of the corresponding Value vectors, suppressing "sink tokens" that attract
-  high attention but carry little information.
-- **Gated AttentionPool** — replaces mean pooling with a learned scalar importance
-  weight per position, giving interpretable residue/token importance scores (S3/S4).
+- **Bidirectional cross-attention** — protein↔ligand attention in each block
+- **Pre-LayerNorm** — normalise before attention (more stable)
+- **Value-weighted attention** — attention weights scaled by ‖V‖₂ at inference
+- **Gated AttentionPool** — learned scalar importance per position, producing interpretable residue/token scores
 
 ### Interpretability
 
-Three complementary attribution signals are extracted without retraining:
+Three complementary signals extracted without retraining:
 
 | Signal | What it captures |
 |--------|-----------------|
-| **S3 — AttentionPool (protein)** | Scalar importance α_i per residue; which residues the model relies on for the final prediction |
-| **S4 — AttentionPool (ligand)** | Scalar importance β_j per token; which SMILES substrings matter |
-| **Value-weighted S1** | Cross-attention A_p2l scaled by ‖V_j‖₂; residue × token interaction map with sink tokens suppressed |
-| **Integrated Gradients** | Gradient-based attribution in embedding space via [Captum](https://captum.ai/) |
-| **Consensus** | c_i = α_i^(IG) × w_i^(S3) — product of IG and AttentionPool, highlighting residues confirmed by both methods |
-
-Running per-compound interpretability analysis:
-```bash
-python interpret_bica_per_compound.py
-# outputs: diary/figures/per_compound/
-```
-
-This produces residue-level attribution profiles, residue×token cross-attention
-heatmaps, value-weighted maps, and a consensus heatmap across all test compounds
-for the protein with the most ligands.
-
-### Ablations
-
-All ablation variants are registered in `run_experiment.py` and share the same
-forward signature:
-
-| Variant | Change | RMSE |
-|---------|--------|------|
-| BiCA v2 (full) | — | 1.102 |
-| BiCA v2 MeanPool | Replace AttentionPool with mean pool | +0.02 |
-| BiCA v2 SingleLayer | 1 cross-attention layer instead of 2 | +0.10 |
-| BiCA v2 NoFFN | Remove feed-forward block | +0.10 |
-| BiCA v2 P2L only | Unidirectional protein→ligand only | — |
-| SimpleConcatBaseline | Same projections/MLP, no attention | — |
+| S3 — AttentionPool (protein) | Residue-level importance α_i |
+| S4 — AttentionPool (ligand) | Token-level importance β_j |
+| Value-weighted S1 | Residue × token cross-attention with sink suppression |
+| Integrated Gradients | Gradient-based attribution via Captum |
+| Consensus | Product of IG and AttentionPool weights |
 
 ### Code
 
-The full model is in [`models/bica_v2.py`](models/bica_v2.py). Key classes:
+Full model in [`models/bica_v2.py`](models/bica_v2.py). Minimal usage:
 
-- `AttentionPool` — learned pooling with optional masking
-- `CrossAttentionBlock` — one bidirectional cross-attention layer with FFN
-- `BiCA_v2` — full model stacking N blocks
-- `build_bica_v2(protein_dim, ligand_dim, **kwargs)` — factory function
-
-Minimal usage:
 ```python
 from models.bica_v2 import build_bica_v2
-import torch
 
 model = build_bica_v2(
-    protein_dim = 480,   # ESM-2 35M per-residue dim
-    ligand_dim  = 384,   # ChemBERTa-77M per-token dim
-    hidden_dim  = 256,
-    num_heads   = 8,
-    num_layers  = 2,
-    dropout     = 0.3,
+    protein_dim=480,   # ESM-2 35M per-residue dim
+    ligand_dim=384,    # ChemBERTa-77M per-token dim
+    hidden_dim=256, num_heads=8, num_layers=2, dropout=0.3,
 )
 
-# protein_seq: (B, L_prot, 480)  — per-residue ESM-2 embeddings
-# ligand_seq:  (B, L_lig,  384)  — per-token ChemBERTa embeddings
-pred = model(protein_seq, ligand_seq)          # (B, 1)
-
-# With attention weights for interpretability:
+pred = model(protein_seq, ligand_seq)                     # (B, 1)
 pred, attn = model(protein_seq, ligand_seq, return_attention=True)
 # attn keys: p2l_weights, l2p_weights, prot_pool_weights, lig_pool_weights
 ```
@@ -209,22 +157,18 @@ pred, attn = model(protein_seq, ligand_seq, return_attention=True)
 
 ## Other Models
 
-All 12 model families evaluated:
-
 | Family | Implementation | Best RMSE |
 |--------|---------------|-----------|
 | Linear (Ridge) | `models/sklearn_models.py` | 1.254 |
-| Tree (RF / XGB / LGBM) | `models/sklearn_models.py` | 1.007 |
-| MLP | `models/mlp.py` | 1.101 |
-| CNN-1D (SMILES) | `models/cnn.py` | 1.324 |
+| Tree (RF / XGB / LGBM) | `models/sklearn_models.py` | 1.006 |
+| MLP | `models/mlp.py` | 1.074 |
+| CNN (SMILES 1D) | `models/cnn.py` | 1.324 |
 | DistMat CNN | `models/distmat_cnn.py` | 1.109 |
 | LSTM / Transformer-seq | `models/sequence_models.py` | 1.146 |
 | GCN / GAT | `models/gnn.py` | 1.194 |
 | Graphormer | `models/graphormer.py` | — |
-| GLI (Gated Local-Global) | `models/gli.py` | — |
-| BiCA (v1, flat vectors) | `models/bica.py` | 1.102 |
-| BiCA v2 (sequence inputs) | `models/bica_v2.py` | 1.102 |
-| PSICHIC | external + `PSICHIC/psichic_runner.py` | 1.176 |
+| BiCA (flat vectors) | `models/bica.py` | 1.146 |
+| BiCA v2 (sequence) | `models/bica_v2.py` | 1.132 |
 
 ---
 
@@ -239,31 +183,33 @@ pip install -r requirements.txt
 pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.6.0+cu124.html
 ```
 
-**Run everything** (resumes automatically if interrupted):
+**Run everything** (resumes if interrupted):
 ```bash
 python run_all.py
 ```
 
-**Run a single experiment:**
+**Single experiment:**
 ```bash
 python run_experiment.py --exp rf_ecfp4_aac
 python run_experiment.py --exp bica_v2_chemberta77M_tokens
 ```
 
-**PSICHIC baseline:**
+**Standalone experiments:**
 ```bash
-python run_psichic_benchmark.py --mode zero_shot
-python run_psichic_benchmark.py --mode fine_tune --ft_iters 5000
+python experiments/run_asap_potency.py    # ASAP Polaris challenge
+python experiments/run_learning_curves.py # RF vs MLP learning curves
+python experiments/cross_dataset_bench.py # Cross-dataset evaluation
 ```
 
-**Analyse results:**
+**Analysis:**
 ```bash
-python analyze_results.py        # prints leaderboard
-python bootstrap_ci.py           # 95% CIs → diary/bootstrap_ci.csv
+python scripts/gen_leaderboard.py     # Print leaderboard
+python scripts/bootstrap_ci.py        # Bootstrap CIs
+python scripts/advanced_stats.py      # ANOVA, Tukey HSD, permutation tests
+python scripts/make_figures.py        # Generate paper figures
 ```
 
-All results are appended to `diary/results_diary.csv`.
-Data is downloaded automatically from HuggingFace (`BALM/BALM-benchmark`) on first run.
+All results appended to `diary/results_diary.csv`. Data auto-downloaded from HuggingFace on first run.
 
 ---
 

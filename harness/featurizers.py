@@ -228,6 +228,35 @@ def kmer_frequency(sequences: List[str], k: int = 3, max_features: int = 8000) -
     return vectorizer.transform(corpus).toarray().astype(np.float32)
 
 
+# ── Fischer target encoding (binary fingerprint of Target_ID) ──────────────
+
+def target_binary(target_ids: List[str], n_bits: int = None) -> np.ndarray:
+    """
+    Binary encode protein Target IDs (Fischer method).
+
+    Each unique Target_ID gets an integer ordinal, encoded as a binary bit vector.
+    E.g., with 101 targets → 7 bits; 1071 targets → 11 bits.
+
+    If n_bits is None, auto-computes ceil(log2(N_unique)).
+
+    Zero-shot note: new/unseen targets are encoded as all-zeros (the model
+    must handle unseen target encoding via its own strategy).
+    """
+    unique_ids = sorted(set(target_ids))
+    n_unique = len(unique_ids)
+    if n_bits is None:
+        n_bits = max(1, int(np.ceil(np.log2(n_unique))))
+    id_to_int = {tid: i + 1 for i, tid in enumerate(unique_ids)}  # 1-indexed, 0 = unknown
+
+    out = np.zeros((len(target_ids), n_bits), dtype=np.float32)
+    for i, tid in enumerate(target_ids):
+        val = id_to_int.get(tid, 0)  # unseen targets → 0 (all zeros)
+        for bit in range(n_bits):
+            if val & (1 << bit):
+                out[i, bit] = 1.0
+    return out
+
+
 
 def prot_electra_embeddings(sequences: List[str], batch_size: int = 8,
                              max_len: int = 512) -> np.ndarray:

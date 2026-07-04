@@ -10,6 +10,7 @@ DATASET_CONFIG = "BindingDB_filtered"
 SMILES_COL  = "Drug"
 PROTEIN_COL = "Target"
 LABEL_COL   = "Y"
+TARGET_ID_COL = "Target_ID"   # for Fischer binary target encoding
 
 # Dataset 2: LeakyPDB (PDBBind-derived)
 LEAKYPDB_NAME   = "BALM/BALM-benchmark"
