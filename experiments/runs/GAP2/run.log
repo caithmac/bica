@@ -1,0 +1,9 @@
+2026-07-09 16:29:57,021 [INFO] Train=(17312, 1088) Test=(4715, 1088)
+2026-07-09 16:29:57,021 [INFO] Default MLP (lr=5e-4, patience=20)...
+2026-07-09 16:32:02,379 [INFO]   Default: RMSE=1.1537 epochs=100 time=125s
+2026-07-09 16:32:02,379 [INFO] Tuned MLP (lr=1e-4, wd=1e-3, patience=40)...
+2026-07-09 16:35:10,412 [INFO]   Tuned:   RMSE=1.1335 epochs=200 time=188s
+2026-07-09 16:35:10,412 [INFO] 
+RF baseline: 1.0065
+2026-07-09 16:35:10,413 [INFO] DL default: 1.1537 (gap: +0.1472)
+2026-07-09 16:35:10,413 [INFO] DL tuned:   1.1335 (gap: +0.1270)

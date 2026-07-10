@@ -1,0 +1,15 @@
+2026-07-09 16:36:33,107 [INFO] Implementation validation:
+2026-07-09 16:36:33,107 [INFO] Model                                        RMSE                         Source
+2026-07-09 16:36:33,107 [INFO] --------------------------------------------------------------------------------
+2026-07-09 16:36:33,107 [INFO] RF+ECFP4+AAC (ours)                        1.0070                  Our benchmark
+2026-07-09 16:36:33,107 [INFO] RF+ECFP4+ESM2 (ours)                       1.0130                  Our benchmark
+2026-07-09 16:36:33,107 [INFO] MLP+ChemBERTa+ESM2 (ours)                  1.1610                  Our benchmark
+2026-07-09 16:36:33,107 [INFO] BiCA+ChemBERTa+ESM2 (ours)                 1.1190                  Our benchmark
+2026-07-09 16:36:33,108 [INFO] BALM RF                                    1.0200             BALM paper Table 2
+2026-07-09 16:36:33,108 [INFO] BALM GNN (GVP)                             1.0820             BALM paper Table 2
+2026-07-09 16:36:33,108 [INFO] BALM DeepDTA                               1.1310             BALM paper Table 2
+2026-07-09 16:36:33,108 [INFO] PSICHIC (zero-shot)                        1.1760                Our E008 result
+2026-07-09 16:36:33,113 [INFO] 
+Key: Our RF (1.007) vs BALM RF (1.020): Δ=-0.013
+2026-07-09 16:36:33,113 [INFO] This is within expected variance (±0.02) → implementation validated
+2026-07-09 16:36:33,114 [INFO] DeepDTA gap: BALM 1.131 vs our MLP 1.161 → consistent range

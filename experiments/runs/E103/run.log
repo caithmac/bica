@@ -1,0 +1,45 @@
+2026-07-09 14:25:30 [INFO] Loaded E101 clean: 18,743 rows, 8,182 compounds, 550 proteins
+2026-07-09 14:25:30 [INFO] ======================================================================
+2026-07-09 14:25:30 [INFO] SPLIT 1: Bemis-Murcko Scaffold (seed 42)
+2026-07-09 14:25:30 [INFO] ======================================================================
+2026-07-09 14:25:44 [INFO]     train: 13,120 compounds, pKd 6.38±1.45
+2026-07-09 14:25:44 [INFO]     val: 1,996 compounds, pKd 6.49±1.37
+2026-07-09 14:25:44 [INFO]     test: 3,627 compounds, pKd 6.58±1.51
+2026-07-09 14:25:57 [INFO]   Scaffold split done in 26.3s
+2026-07-09 14:25:57 [INFO] ======================================================================
+2026-07-09 14:25:57 [INFO] SPLIT 2: Sequence-Identity (MMseqs2, 40%)
+2026-07-09 14:25:57 [INFO] ======================================================================
+2026-07-09 14:25:57 [INFO]   Wrote 18,743 sequences to E:\Drug Discovery\experiments\runs\E103\proteins.fasta
+2026-07-09 14:25:57 [WARNING]   MMseqs2 not available. Falling back to protein-level random split.
+2026-07-09 14:25:57 [WARNING]   Install: conda install -c bioconda mmseqs2
+2026-07-09 14:25:57 [INFO]     train: 13,250 compounds, pKd 6.50±1.46
+2026-07-09 14:25:57 [INFO]     val: 1,876 compounds, pKd 6.11±1.48
+2026-07-09 14:25:57 [INFO]     test: 3,617 compounds, pKd 6.33±1.39
+2026-07-09 14:26:10 [INFO]   Fallback split done in 13.4s
+2026-07-09 14:26:10 [INFO] ======================================================================
+2026-07-09 14:26:10 [INFO] SPLIT 3: Random (seed 42)
+2026-07-09 14:26:10 [INFO] ======================================================================
+2026-07-09 14:26:10 [INFO]     train: 13,120 compounds, pKd 6.44±1.46
+2026-07-09 14:26:10 [INFO]     val: 1,874 compounds, pKd 6.43±1.43
+2026-07-09 14:26:10 [INFO]     test: 3,749 compounds, pKd 6.41±1.46
+2026-07-09 14:26:23 [INFO]   Random split done in 13.1s
+2026-07-09 14:26:23 [INFO] ======================================================================
+2026-07-09 14:26:23 [INFO] SPLIT COMPARISON
+2026-07-09 14:26:23 [INFO] ======================================================================
+2026-07-09 14:26:23 [INFO] 
+Scaffold:
+2026-07-09 14:26:23 [INFO]   Train=13,120  Val=1,996  Test=3,627
+2026-07-09 14:26:23 [INFO]   Train pKd=6.38  Val pKd=6.49  Test pKd=6.58
+2026-07-09 14:26:23 [INFO] 
+SeqID:
+2026-07-09 14:26:23 [INFO]   Train=13,250  Val=1,876  Test=3,617
+2026-07-09 14:26:23 [INFO]   Train pKd=6.50  Val pKd=6.11  Test pKd=6.33
+2026-07-09 14:26:23 [INFO]   Clusters=550  Max cluster=N/A
+2026-07-09 14:26:23 [INFO] 
+Random:
+2026-07-09 14:26:23 [INFO]   Train=13,120  Val=1,874  Test=3,749
+2026-07-09 14:26:23 [INFO]   Train pKd=6.44  Val pKd=6.43  Test pKd=6.41
+2026-07-09 14:26:23 [INFO] 
+  Split comparison saved to split_comparison.tex
+2026-07-09 14:26:23 [INFO] 
+E103 COMPLETE

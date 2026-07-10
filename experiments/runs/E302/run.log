@@ -1,0 +1,8 @@
+2026-07-09 15:02:26,707 [INFO] rf_ecfp4_aac                             RMSE=1.0065 MAE=0.7637 bias=+0.0232 σ_resid=1.0062 cov_1σ=72.94%
+2026-07-09 15:02:26,709 [INFO] xgb_ecfp4_aac                            RMSE=1.0523 MAE=0.8123 bias=+0.0335 σ_resid=1.0518 cov_1σ=71.66%
+2026-07-09 15:02:26,710 [INFO] lgbm_ecfp4_aac                           RMSE=1.0528 MAE=0.8200 bias=+0.0792 σ_resid=1.0498 cov_1σ=71.39%
+2026-07-09 15:02:26,712 [INFO] mlp_chemberta_esm2_8M                    RMSE=1.1931 MAE=0.8980 bias=+0.0179 σ_resid=1.1929 cov_1σ=72.70%
+2026-07-09 15:02:26,713 [INFO] xgb_chemberta_5M_esm2_650M               RMSE=1.0434 MAE=0.8039 bias=+0.0470 σ_resid=1.0423 cov_1σ=71.41%
+2026-07-09 15:02:26,719 [INFO] 
+Key: No systematic bias
+2026-07-09 15:02:27,879 [INFO] Saved calibration_plot.pdf

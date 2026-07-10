@@ -1,0 +1,45 @@
+2026-07-09 14:33:21 [INFO] ======================================================================
+2026-07-09 14:33:21 [INFO] STEP 1: Loading data + ECFP4 featurization
+2026-07-09 14:33:21 [INFO] ======================================================================
+2026-07-09 14:33:22 [INFO]   Train: 17,312  Val: 2,673  Test: 4,715
+2026-07-09 14:33:22 [INFO]   Computing ECFP4 fingerprints...
+2026-07-09 14:34:13 [INFO]   Train features: (17312, 2068)  Test: (4715, 2068)  (50.5s)
+2026-07-09 14:34:13 [INFO] ======================================================================
+2026-07-09 14:34:13 [INFO] STEP 2: Training models + extracting importances
+2026-07-09 14:34:13 [INFO] ======================================================================
+2026-07-09 14:34:13 [INFO]   Training Random Forest...
+2026-07-09 14:34:22 [INFO]     RMSE=1.0358  R=0.7343  (9.4s)
+2026-07-09 14:34:22 [INFO]   Training XGBoost...
+2026-07-09 14:34:33 [INFO]     RMSE=1.0572  R=0.7155  (11.0s)
+2026-07-09 14:34:33 [INFO]   Training LightGBM...
+2026-07-09 14:34:36 [INFO]     RMSE=1.0536  R=0.7192  (2.4s)
+2026-07-09 14:34:36 [INFO]   RF: top-5 bits: ['AAC_C', 'AAC_S', 'AAC_D', 'AAC_L', 'AAC_E']
+2026-07-09 14:34:36 [INFO]   XGBoost: top-5 bits: ['ECFP4_1234', 'ECFP4_764', 'ECFP4_1601', 'ECFP4_1494', 'ECFP4_1288']
+2026-07-09 14:34:36 [INFO]   LightGBM: top-5 bits: ['AAC_C', 'AAC_S', 'AAC_W', 'AAC_T', 'AAC_Y']
+2026-07-09 14:34:36 [INFO] ======================================================================
+2026-07-09 14:34:36 [INFO] STEP 3: Mapping top ECFP4 bits to substructures
+2026-07-09 14:34:36 [INFO] ======================================================================
+2026-07-09 14:34:36 [INFO]   RF: top-30 ECFP4 bits mapped
+2026-07-09 14:34:36 [INFO]   XGBoost: top-30 ECFP4 bits mapped
+2026-07-09 14:34:36 [INFO]   LightGBM: top-30 ECFP4 bits mapped
+2026-07-09 14:34:36 [INFO]   Reference molecules for visualization: 20
+2026-07-09 14:34:36 [INFO] ======================================================================
+2026-07-09 14:34:36 [INFO] STEP 4: Bit overlap between models
+2026-07-09 14:34:36 [INFO] ======================================================================
+2026-07-09 14:34:36 [INFO]   RF ↔ XGBoost: Jaccard(top30)=0.132  Jaccard(top50)=0.132
+2026-07-09 14:34:36 [INFO]   RF ↔ LightGBM: Jaccard(top30)=0.429  Jaccard(top50)=0.429
+2026-07-09 14:34:36 [INFO]   XGBoost ↔ LightGBM: Jaccard(top30)=0.017  Jaccard(top50)=0.017
+2026-07-09 14:34:36 [INFO] 
+  Bits shared by ALL 3 models (top-30): 1
+2026-07-09 14:34:36 [INFO]   Top-5 shared bits: [926]
+2026-07-09 14:34:36 [INFO] ======================================================================
+2026-07-09 14:34:36 [INFO] STEP 5: Generating figures
+2026-07-09 14:34:36 [INFO] ======================================================================
+2026-07-09 14:34:36 [INFO]   Saved bit_overlap_venn.pdf
+2026-07-09 14:34:36 [WARNING]   Only 1 shared bits — insufficient for top-5 drawing
+2026-07-09 14:34:36 [INFO] 
+  Chemical interpretation of top shared bits:
+2026-07-09 14:34:36 [INFO] 
+==================================================
+2026-07-09 14:34:36 [INFO] E205 COMPLETE
+2026-07-09 14:34:36 [INFO] ==================================================

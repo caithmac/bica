@@ -1,0 +1,16 @@
+model_a,model_b,label_a,label_b,kendall_tau,p_value
+rf_ecfp4_aac,xgb_ecfp4_aac,RF + ECFP4 + AAC,XGBoost + ECFP4 + AAC,0.7442,0.0
+rf_ecfp4_aac,lgbm_ecfp4_aac,RF + ECFP4 + AAC,LightGBM + ECFP4 + AAC,0.7374,0.0
+rf_ecfp4_aac,mlp_chemberta_esm2_8M,RF + ECFP4 + AAC,MLP + ChemBERTa-5M + ESM-2-8M,0.5841,0.0
+rf_ecfp4_aac,xgb_chemberta_5M_esm2_650M,RF + ECFP4 + AAC,XGBoost + ChemBERTa + ESM-2-650M,0.6733,0.0
+rf_ecfp4_aac,bica_chemberta_esm2_8M,RF + ECFP4 + AAC,BiCA + ChemBERTa + ESM-2-8M,0.558,0.0
+xgb_ecfp4_aac,lgbm_ecfp4_aac,XGBoost + ECFP4 + AAC,LightGBM + ECFP4 + AAC,0.8176,0.0
+xgb_ecfp4_aac,mlp_chemberta_esm2_8M,XGBoost + ECFP4 + AAC,MLP + ChemBERTa-5M + ESM-2-8M,0.5927,0.0
+xgb_ecfp4_aac,xgb_chemberta_5M_esm2_650M,XGBoost + ECFP4 + AAC,XGBoost + ChemBERTa + ESM-2-650M,0.6342,0.0
+xgb_ecfp4_aac,bica_chemberta_esm2_8M,XGBoost + ECFP4 + AAC,BiCA + ChemBERTa + ESM-2-8M,0.5842,0.0
+lgbm_ecfp4_aac,mlp_chemberta_esm2_8M,LightGBM + ECFP4 + AAC,MLP + ChemBERTa-5M + ESM-2-8M,0.5938,0.0
+lgbm_ecfp4_aac,xgb_chemberta_5M_esm2_650M,LightGBM + ECFP4 + AAC,XGBoost + ChemBERTa + ESM-2-650M,0.6411,0.0
+lgbm_ecfp4_aac,bica_chemberta_esm2_8M,LightGBM + ECFP4 + AAC,BiCA + ChemBERTa + ESM-2-8M,0.5636,0.0
+mlp_chemberta_esm2_8M,xgb_chemberta_5M_esm2_650M,MLP + ChemBERTa-5M + ESM-2-8M,XGBoost + ChemBERTa + ESM-2-650M,0.5922,0.0
+mlp_chemberta_esm2_8M,bica_chemberta_esm2_8M,MLP + ChemBERTa-5M + ESM-2-8M,BiCA + ChemBERTa + ESM-2-8M,0.6776,0.0
+xgb_chemberta_5M_esm2_650M,bica_chemberta_esm2_8M,XGBoost + ChemBERTa + ESM-2-650M,BiCA + ChemBERTa + ESM-2-8M,0.562,0.0

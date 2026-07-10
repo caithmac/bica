@@ -1,0 +1,37 @@
+experiment: E101
+description: BindingDB re-cleaning pipeline
+source: BALM/BALM-benchmark (BindingDB_filtered)
+steps:
+- 1_load_raw
+- 2_canonical_smiles
+- 3_dedup
+- 4_conflict_flag
+- 5_protein_qc
+- 6_min_compounds
+thresholds:
+  conflict_max_delta_pkd: 1.0
+  protein_max_nonstandard_pct: 5.0
+  min_compounds_per_target: 10
+standard_aa: ACDEFGHIKLMNPQRSTVWY
+timestamp: '2026-07-09T14:18:09.077028'
+standard_aa_set: !!set
+  P: null
+  Q: null
+  W: null
+  G: null
+  K: null
+  M: null
+  T: null
+  S: null
+  N: null
+  C: null
+  F: null
+  R: null
+  L: null
+  E: null
+  D: null
+  A: null
+  V: null
+  H: null
+  I: null
+  Y: null

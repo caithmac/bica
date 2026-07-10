@@ -1,0 +1,42 @@
+2026-07-09 16:34:50,654 [INFO]   shallow         seed=42 RMSE=1.2651 R=0.6178 ep=100
+2026-07-09 16:36:01,567 [INFO]   shallow         seed=123 RMSE=1.2431 R=0.6234 ep=100
+2026-07-09 16:37:34,888 [INFO]   shallow         seed=456 RMSE=1.2322 R=0.6259 ep=100
+2026-07-09 16:40:13,208 [INFO]   medium          seed=42 RMSE=1.1531 R=0.6779 ep=100
+2026-07-09 16:42:48,614 [INFO]   medium          seed=123 RMSE=1.1787 R=0.6631 ep=100
+2026-07-09 16:45:17,968 [INFO]   medium          seed=456 RMSE=1.1738 R=0.6660 ep=100
+2026-07-09 16:48:36,761 [INFO]   deep            seed=42 RMSE=1.1345 R=0.6831 ep=100
+2026-07-09 16:52:02,657 [INFO]   deep            seed=123 RMSE=1.1666 R=0.6665 ep=100
+2026-07-09 16:54:29,551 [INFO]   deep            seed=456 RMSE=1.1227 R=0.6890 ep=100
+2026-07-09 16:56:06,980 [INFO]   deep_hidrop     seed=42 RMSE=1.1514 R=0.6720 ep=100
+2026-07-09 16:57:57,982 [INFO]   deep_hidrop     seed=123 RMSE=1.1695 R=0.6724 ep=100
+2026-07-09 16:59:54,424 [INFO]   deep_hidrop     seed=456 RMSE=1.1526 R=0.6746 ep=100
+2026-07-09 17:01:44,812 [INFO]   deep_lowlr      seed=42 RMSE=1.1386 R=0.6784 ep=100
+2026-07-09 17:03:37,698 [INFO]   deep_lowlr      seed=123 RMSE=1.1216 R=0.6850 ep=100
+2026-07-09 17:05:24,302 [INFO]   deep_lowlr      seed=456 RMSE=1.1503 R=0.6725 ep=100
+2026-07-09 17:05:24,336 [INFO] 
+=== SUMMARY ===
+2026-07-09 17:05:24,346 [INFO]   shallow        : RMSE=1.2468±0.0168  best=1.2322  ep=100
+2026-07-09 17:05:24,347 [INFO]   medium         : RMSE=1.1685±0.0136  best=1.1531  ep=100
+2026-07-09 17:05:24,347 [INFO]   deep           : RMSE=1.1412±0.0227  best=1.1227  ep=100
+2026-07-09 17:05:24,347 [INFO]   deep_hidrop    : RMSE=1.1578±0.0101  best=1.1514  ep=100
+2026-07-09 17:05:24,348 [INFO]   deep_lowlr     : RMSE=1.1369±0.0144  best=1.1216  ep=100
+2026-07-09 17:05:24,348 [INFO] 
+  RF baseline: 1.0065
+2026-07-09 17:05:24,348 [INFO]   Best DL: 1.1216 (gap: +0.1151)
+2026-07-09 17:05:54,280 [INFO]   deep            seed=456 RMSE=1.1227 R=0.6890 ep=100
+2026-07-09 17:07:31,687 [INFO]   deep_hidrop     seed=42 RMSE=1.1514 R=0.6720 ep=100
+2026-07-09 17:09:18,726 [INFO]   deep_hidrop     seed=123 RMSE=1.1695 R=0.6724 ep=100
+2026-07-09 17:12:38,287 [INFO]   deep_hidrop     seed=456 RMSE=1.1526 R=0.6746 ep=100
+2026-07-09 17:19:31,420 [INFO]   deep_lowlr      seed=42 RMSE=1.1386 R=0.6784 ep=100
+2026-07-09 17:31:00,224 [INFO]   deep_lowlr      seed=123 RMSE=1.1216 R=0.6850 ep=100
+2026-07-09 17:42:30,767 [INFO]   deep_lowlr      seed=456 RMSE=1.1503 R=0.6725 ep=100
+2026-07-09 17:42:30,769 [INFO] 
+=== SUMMARY ===
+2026-07-09 17:42:30,804 [INFO]   shallow        : RMSE=1.2468±0.0168  best=1.2322  ep=100
+2026-07-09 17:42:30,804 [INFO]   medium         : RMSE=1.1685±0.0136  best=1.1531  ep=100
+2026-07-09 17:42:30,805 [INFO]   deep           : RMSE=1.1412±0.0227  best=1.1227  ep=100
+2026-07-09 17:42:30,805 [INFO]   deep_hidrop    : RMSE=1.1578±0.0101  best=1.1514  ep=100
+2026-07-09 17:42:30,805 [INFO]   deep_lowlr     : RMSE=1.1369±0.0144  best=1.1216  ep=100
+2026-07-09 17:42:30,805 [INFO] 
+  RF baseline: 1.0065
+2026-07-09 17:42:30,805 [INFO]   Best DL: 1.1216 (gap: +0.1151)

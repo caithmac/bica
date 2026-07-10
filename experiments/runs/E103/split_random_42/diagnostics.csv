@@ -1,0 +1,2 @@
+n_total,n_train,n_val,n_test,n_scaffolds,largest_scaffold_fraction,test_smiles_in_train,train_pkd_mean,val_pkd_mean,test_pkd_mean
+18743,13120,1874,3749,3784,0.0244,708,6.437,6.429,6.41

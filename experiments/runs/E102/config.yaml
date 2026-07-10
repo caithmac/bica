@@ -1,0 +1,11 @@
+experiment: E102
+description: Cross-dataset overlap analysis
+datasets:
+- BindingDB (E101 clean)
+- LeakyPDB (PDBBind-derived)
+- ChEMBL 36 (binding data)
+overlap_levels:
+- exact_smiles
+- bemis_murcko_scaffold
+- protein_sequence
+timestamp: '2026-07-09T14:27:10.052138'

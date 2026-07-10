@@ -1,0 +1,10 @@
+experiment: E205
+description: ECFP4 bit importance analysis
+ecfp_radius: 2
+ecfp_nbits: 2048
+top_k_bits: 30
+models:
+- rf_ecfp4_aac
+- xgb_ecfp4_aac
+- lgbm_ecfp4_aac
+timestamp: '2026-07-09T14:33:21.904098'

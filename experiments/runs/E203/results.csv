@@ -1,0 +1,4 @@
+split,mode,n_params,steps_trained,batch_size,lr,n_train,n_val,n_test,val_rmse,val_pearson_r,test_rmse,test_pearson_r,train_time_s
+scaffold,zero_shot,5871321,0,16,0,0,2673,4715,1.724,0.369,1.787,0.456,44
+scaffold,fine_tune,5871321,5000,16,1e-5,17312,2673,4715,1.139,0.605,1.176,0.631,1553
+random,fine_tune,5871321,5000,16,1e-5,17290,2470,4940,1.040,0.718,1.008,0.729,1414

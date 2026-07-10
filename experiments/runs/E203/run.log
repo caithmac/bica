@@ -1,0 +1,33 @@
+2026-07-09 17:17:55,759 [INFO] Scaffold: train=17,312 val=2,673 test=4,715
+2026-07-09 17:17:55,761 [INFO] Random:   train=17,290 val=2,470 test=4,940
+2026-07-09 17:17:56,405 [INFO] 
+==================================================
+  PSICHIC — scaffold split
+==================================================
+2026-07-09 17:17:56,406 [INFO]   Running PSICHIC fine_tune on scaffold split...
+2026-07-09 18:35:09,921 [ERROR]   PSICHIC failed on scaffold: 
+2026-07-09 18:35:09,929 [INFO]   Time: 77.2 min
+2026-07-09 18:35:09,929 [INFO] 
+==================================================
+  PSICHIC — random split
+==================================================
+2026-07-09 18:35:09,932 [INFO]   Running PSICHIC fine_tune on random split...
+2026-07-09 18:56:31,503 [ERROR]   PSICHIC failed on random: Traceback (most recent call last):
+  File "E:\Drug Discovery\PSICHIC\psichic_runner.py", line 278, in <module>
+    main()
+  File "E:\Drug Discovery\PSICHIC\psichic_runner.py", line 235, in main
+    model, steps_trained, elapsed_ft = _fine_tune(
+                                       ^^^^^^^^^^^
+  File "E:\Drug Discovery\PSICHIC\psichic_runner.py", line 126, in _fine_tune
+    reg_pred, *_ = model(
+                   ^^^^^^
+  File "C:\Us2026-07-09 18:56:32,832 [ERROR]   PSICHIC failed on random: Traceback (most recent call last):
+  File "E:\Drug Discovery\PSICHIC\psichic_runner.py", line 278, in <module>
+    main()
+  File "E:\Drug Discovery\PSICHIC\psichic_runner.py", line 235, in main
+    model, steps_trained, elapsed_ft = _fine_tune(
+                                       ^^^^^^^^^^^
+  File "E:\Drug Discovery\PSICHIC\psichic_runner.py", line 143, in _fine_tune
+    loss.backward()
+  File "C:\Users\ss864\AppData\Local\miniconda3\envs\drug_discovery\Lib\site-packages\torch\_tensor.py", l
+2026-07-09 18:56:32,835 [INFO]   Time: 35.6 min

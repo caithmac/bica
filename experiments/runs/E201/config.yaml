@@ -1,0 +1,34 @@
+experiment: E201
+models:
+- family: tree
+  id: rf_ecfp4_aac
+  ligand_repr: ecfp4_1024
+  protein_repr: aac_20
+  type: sklearn
+- family: mlp
+  freeze_esm: true
+  id: mlp_chemberta_esm2_8M
+  ligand_repr: chemberta_600
+  mlp_arch: deep
+  protein_repr: esm2_8M_320
+  type: torch
+- family: mlp
+  freeze_esm: false
+  id: mlp_chemberta_esm2_8M_ft3
+  ligand_repr: chemberta_600
+  mlp_arch: deep
+  protein_repr: esm2_8M_320
+  type: torch
+  unfreeze_layers: 3
+seeds:
+- 42
+- 123
+- 456
+split_seed: 42
+subset_sizes:
+- 500
+- 1000
+- 2500
+- 5000
+- 10000
+- 17312

@@ -1,0 +1,25 @@
+[PSICHIC runner] mode=fine_tune  device=cuda
+[PSICHIC runner] Loading ligand features …
+  9163 ligands
+[PSICHIC runner] Loading protein features …
+  1069 proteins
+  n_params=5,871,321
+[PSICHIC runner] Fine-tuning 5000 iters …
+  [ft] step 500/5000 loss=1.4356 elapsed=129s
+  [ft] step 1000/5000 loss=1.9757 elapsed=257s
+  [ft] step 1081 val_rmse=1.1775
+  [ft] step 1500/5000 loss=0.7547 elapsed=402s
+  [ft] step 2000/5000 loss=1.7071 elapsed=530s
+  [ft] step 2162 val_rmse=1.1099
+  [ft] step 2500/5000 loss=0.9318 elapsed=674s
+  [ft] step 3000/5000 loss=0.9106 elapsed=804s
+  [ft] step 3243 val_rmse=1.0710
+  [ft] step 3500/5000 loss=0.8147 elapsed=947s
+  [ft] step 4000/5000 loss=1.3439 elapsed=1075s
+  [ft] step 4324 val_rmse=1.0521
+  [ft] step 4500/5000 loss=0.1725 elapsed=1221s
+  [ft] step 5000/5000 loss=0.8044 elapsed=1349s
+  [ft] step 5000 val_rmse=1.0403
+[PSICHIC runner] Running inference …
+  test RMSE=1.0080  Pearson=0.7290  Spearman=0.6762
+[PSICHIC runner] Results written to E:/Drug Discovery/experiments/runs/E203/psichic_random_result.json

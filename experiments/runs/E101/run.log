@@ -1,0 +1,56 @@
+2026-07-09 14:18:09 [INFO] ======================================================================
+2026-07-09 14:18:09 [INFO] STEP 1: Loading BALM/BALM-benchmark (BindingDB_filtered)
+2026-07-09 14:18:09 [INFO] ======================================================================
+2026-07-09 14:18:13 [INFO] Loaded 24,700 rows in 4.0s
+2026-07-09 14:18:13 [INFO]   pKd range: [2.00, 10.00]
+2026-07-09 14:18:13 [INFO]   Unique raw SMILES: 9,163
+2026-07-09 14:18:13 [INFO]   Unique proteins (seq): 1,069
+2026-07-09 14:18:13 [INFO]   1_load_raw: 24,700 → 24,700 (0 dropped, Initial load from BALM HF)
+2026-07-09 14:18:13 [INFO] ======================================================================
+2026-07-09 14:18:13 [INFO] STEP 2: RDKit canonical SMILES + validation
+2026-07-09 14:18:13 [INFO] ======================================================================
+2026-07-09 14:18:23 [INFO]   2_canonical_smiles: 24,700 → 24,700 (0 dropped, RDKit parse failed (0); empty mol (0))
+2026-07-09 14:18:23 [INFO]   Saved 0 dropped invalid SMILES to dropped_invalid_smiles.csv
+2026-07-09 14:18:23 [INFO] ======================================================================
+2026-07-09 14:18:23 [INFO] STEP 3: Drop exact duplicates (canonical SMILES + protein sequence)
+2026-07-09 14:18:23 [INFO] ======================================================================
+2026-07-09 14:18:23 [INFO]   Duplicate groups (>1 row per unique SMILES+protein): 2020
+2026-07-09 14:18:23 [INFO]   3_dedup: 24,700 → 20,477 (4,223 dropped, 2020 duplicate groups resolved)
+2026-07-09 14:18:23 [INFO] ======================================================================
+2026-07-09 14:18:23 [INFO] STEP 4: Flag conflict groups (|ΔpKd| > 1.0 for same SMILES + protein)
+2026-07-09 14:18:23 [INFO] ======================================================================
+2026-07-09 14:18:24 [INFO]   Conflict groups (|ΔpKd| > 1.0): 641
+2026-07-09 14:18:24 [INFO]   Saved 641 conflict groups to conflict_groups.csv
+2026-07-09 14:18:24 [INFO]   4_conflict_flag: 20,477 → 20,477 (0 dropped, 641 conflict groups flagged)
+2026-07-09 14:18:24 [INFO] ======================================================================
+2026-07-09 14:18:24 [INFO] STEP 5: Protein sequence QC (standard 20 AA only)
+2026-07-09 14:18:24 [INFO] ======================================================================
+2026-07-09 14:18:24 [INFO]   Dropped 0 rows with >5.0% non-standard AA
+2026-07-09 14:18:25 [INFO]   5_protein_qc: 20,477 → 20,477 (0 dropped, Sequences with >5.0% non-standard AA removed (0 rows))
+2026-07-09 14:18:25 [INFO] ======================================================================
+2026-07-09 14:18:25 [INFO] STEP 6: Filter targets with <10 compounds
+2026-07-09 14:18:25 [INFO] ======================================================================
+2026-07-09 14:18:26 [INFO]   Targets with ≥10 compounds: 550
+2026-07-09 14:18:26 [INFO]   Targets dropped (<10 compounds): 519
+2026-07-09 14:18:26 [INFO]   6_min_compounds: 20,477 → 18,743 (1,734 dropped, Targets with <10 compounds removed (519 targets))
+2026-07-09 14:18:26 [INFO] ======================================================================
+2026-07-09 14:18:26 [INFO] FINAL: Saving clean dataset
+2026-07-09 14:18:26 [INFO] ======================================================================
+2026-07-09 14:18:26 [INFO]   Saved 18,743 clean rows to E:\Drug Discovery\experiments\runs\E101\bindingdb_clean.csv
+2026-07-09 14:18:26 [INFO] 
+==================================================
+2026-07-09 14:18:26 [INFO] CLEAN DATASET SUMMARY
+2026-07-09 14:18:26 [INFO] ==================================================
+2026-07-09 14:18:26 [INFO]   Total compounds (unique SMILES): 8,182
+2026-07-09 14:18:26 [INFO]   Total protein targets (unique seqs): 550
+2026-07-09 14:18:26 [INFO]   Total interactions: 18,743
+2026-07-09 14:18:26 [INFO]   pKd: mean=6.43 ± 1.46
+2026-07-09 14:18:26 [INFO]   pKd range: [2.00, 10.00]
+2026-07-09 14:18:26 [INFO]   Compounds per target: median=23, mean=34.1
+2026-07-09 14:18:26 [INFO] 
+  Curation log saved to curation_log.csv
+2026-07-09 14:18:26 [INFO]   Curation LaTeX table saved to curation_summary.tex
+2026-07-09 14:18:26 [INFO] 
+  Total time: 0.3 min (17s)
+2026-07-09 14:18:26 [INFO] 
+  Update E:\Drug Discovery\experiments\PROGRESS.md to mark E101 as done

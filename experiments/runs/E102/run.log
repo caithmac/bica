@@ -1,0 +1,89 @@
+2026-07-09 14:27:10 [INFO] ======================================================================
+2026-07-09 14:27:10 [INFO] STEP 1: Loading datasets
+2026-07-09 14:27:10 [INFO] ======================================================================
+2026-07-09 14:27:10 [INFO] BindingDB (E101 clean): 18,743 rows
+2026-07-09 14:27:34 [INFO]   Unique canonical SMILES: 8,182
+2026-07-09 14:27:34 [INFO]   Unique scaffolds: 3,719
+2026-07-09 14:27:34 [INFO]   Unique proteins: 550
+2026-07-09 14:27:37 [INFO] LeakyPDB: 18,473 rows
+2026-07-09 14:27:56 [INFO]   Unique canonical SMILES: 15,400
+2026-07-09 14:27:56 [INFO]   Unique scaffolds: 8,923
+2026-07-09 14:27:56 [INFO]   Unique proteins: 11,986
+2026-07-09 14:27:56 [INFO] ChEMBL 36: SKIPPED (SQLite query too slow on 27GB 2026-07-09 15:06:05 [INFO] ChEMBL 36: 2,016,608 rows (deduped)
+2026-07-09 15:06:05 [INFO]   Unique canonical SMILES: 1,087,810
+2026-07-09 15:06:05 [INFO]   Unique scaffolds: 361,944
+2026-07-09 15:06:05 [INFO]   Unique proteins: 8,296
+2026-07-09 15:06:05 [INFO] ======================================================================
+2026-07-09 15:06:05 [INFO] STEP 2: Computing overlap matrices
+2026-07-09 15:06:05 [INFO] ======================================================================
+2026-07-09 15:06:06 [INFO] 
+SMILES Jaccard overlap:
+2026-07-09 15:06:06 [INFO] 
+           BindingDB  LeakyPDB    ChEMBL
+BindingDB   1.000000  0.012929  0.005844
+LeakyPDB    0.012929  1.000000  0.003029
+ChEMBL      0.005844  0.003029  1.000000
+2026-07-09 15:06:06 [INFO] 
+SMILES Intersection counts:
+2026-07-09 15:06:06 [INFO] 
+           BindingDB  LeakyPDB   ChEMBL
+BindingDB       8182       301     6368
+LeakyPDB         301     15400     3332
+ChEMBL          6368      3332  1087810
+2026-07-09 15:06:06 [INFO] 
+SCAFFOLDS Jaccard overlap:
+2026-07-09 15:06:06 [INFO] 
+           BindingDB  LeakyPDB    ChEMBL
+BindingDB   1.000000  0.041179  0.009034
+LeakyPDB    0.041179  1.000000  0.012402
+ChEMBL      0.009034  0.012402  1.000000
+2026-07-09 15:06:06 [INFO] 
+SCAFFOLDS Intersection counts:
+2026-07-09 15:06:06 [INFO] 
+           BindingDB  LeakyPDB  ChEMBL
+BindingDB       3719       500    3274
+LeakyPDB         500      8923    4543
+ChEMBL          3274      4543  361944
+2026-07-09 15:06:06 [INFO] 
+PROTEINS Jaccard overlap:
+2026-07-09 15:06:06 [INFO] 
+           BindingDB  LeakyPDB    ChEMBL
+BindingDB   1.000000  0.000479  0.064373
+LeakyPDB    0.000479  1.000000  0.001729
+ChEMBL      0.064373  0.001729  1.000000
+2026-07-09 15:06:06 [INFO] 
+PROTEINS Intersection counts:
+2026-07-09 15:06:06 [INFO] 
+           BindingDB  LeakyPDB  ChEMBL
+BindingDB        550         6     535
+LeakyPDB           6     11986      35
+ChEMBL           535        35    8296
+2026-07-09 15:06:06 [INFO] ======================================================================
+2026-07-09 15:06:06 [INFO] STEP 3: Checking BindingDB test-set leakage
+2026-07-09 15:06:06 [INFO] ======================================================================
+2026-07-09 15:06:11 [INFO] BindingDB test set (scaffold split, seed 42): 4,715 compounds
+2026-07-09 15:06:11 [INFO]   Unique canonical SMILES in test: 1,853
+2026-07-09 15:06:11 [INFO]   Unique scaffolds in test: 763
+2026-07-09 15:06:11 [INFO] 
+  Leaked exact SMILES in LeakyPDB: 75
+2026-07-09 15:06:11 [INFO]   Leaked scaffolds in LeakyPDB: 90
+2026-07-09 15:06:11 [INFO]   Leaked exact SMILES in ChEMBL: 1402
+2026-07-09 15:06:11 [INFO]   Leaked scaffolds in ChEMBL: 669
+2026-07-09 15:11:25 [INFO] 
+  Saved 1382 leaked entries to leaked_test_compounds.csv
+2026-07-09 15:11:25 [INFO] ======================================================================
+2026-07-09 15:11:25 [INFO] STEP 4: Generating overlap heatmap
+2026-07-09 15:11:25 [INFO] ======================================================================
+2026-07-09 15:11:26 [INFO]   Saved overlap_heatmap.pdf and overlap_heatmap.png
+2026-07-09 15:11:26 [INFO] 
+==================================================
+2026-07-09 15:11:26 [INFO] E102 COMPLETE in 3020.7s
+2026-07-09 15:11:26 [INFO] ==================================================
+2026-07-09 15:11:26 [INFO] 
+KEY FINDINGS:
+2026-07-09 15:11:26 [INFO]   BindingDB ↔ LeakyPDB scaffold overlap: 0.041
+2026-07-09 15:11:26 [INFO]   BindingDB ↔ ChEMBL scaffold overlap: 0.009
+2026-07-09 15:11:26 [INFO]   Leaked test SMILES (LeakyPDB): 75
+2026-07-09 15:11:26 [INFO]   Leaked test scaffolds (LeakyPDB): 90
+2026-07-09 15:11:26 [WARNING]   ⚠ LEAKAGE DETECTED — test compounds appear in LeakyPDB!
+2026-07-09 15:11:26 [WARNING]   Remove these compounds from test set before cross-dataset evaluation.

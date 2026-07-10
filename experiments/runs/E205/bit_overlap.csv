@@ -1,0 +1,4 @@
+model_a,model_b,jaccard_top30,jaccard_top50,intersection_count
+RF,XGBoost,0.1321,0.1321,7
+RF,LightGBM,0.4286,0.4286,18
+XGBoost,LightGBM,0.0169,0.0169,1

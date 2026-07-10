@@ -1,0 +1,21 @@
+{
+  "mode": "fine_tune",
+  "n_params": 5871321,
+  "steps_trained": 5000,
+  "batch_size": 16,
+  "learning_rate": 1e-05,
+  "train_time_sec": 1413.6381936073303,
+  "n_train": 17290,
+  "n_val": 2470,
+  "n_test": 4940,
+  "val_metrics": {
+    "rmse": 1.0402960122594298,
+    "pearson_r": 0.7179051257593683,
+    "spearman_r": 0.6655427110987059
+  },
+  "test_metrics": {
+    "rmse": 1.0080046418759585,
+    "pearson_r": 0.7290227808139195,
+    "spearman_r": 0.6761702629060696
+  }
+}

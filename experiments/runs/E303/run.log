@@ -1,0 +1,5 @@
+2026-07-09 16:29:57,376 [INFO] Random split: train=17,290 val=2,470 test=4,940
+2026-07-09 16:32:10,485 [INFO] rf_ecfp4_aac: random=0.8460 scaffold=1.0065 Δ=-0.1605
+2026-07-09 16:32:26,936 [INFO] xgb_ecfp4_aac: random=0.8483 scaffold=1.0523 Δ=-0.2040
+2026-07-09 16:32:26,942 [INFO] 
+Random split: DL overfitting gap = -0.1823

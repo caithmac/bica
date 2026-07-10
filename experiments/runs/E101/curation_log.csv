@@ -1,0 +1,7 @@
+step,rows_in,rows_out,n_dropped,drop_pct,drop_reason
+1_load_raw,24700,24700,0,0.0,Initial load from BALM HF
+2_canonical_smiles,24700,24700,0,0.0,RDKit parse failed (0); empty mol (0)
+3_dedup,24700,20477,4223,17.1,2020 duplicate groups resolved
+4_conflict_flag,20477,20477,0,0.0,641 conflict groups flagged
+5_protein_qc,20477,20477,0,0.0,Sequences with >5.0% non-standard AA removed (0 rows)
+6_min_compounds,20477,18743,1734,8.47,Targets with <10 compounds removed (519 targets)

@@ -1,0 +1,66 @@
+2026-07-09 14:32:53 [INFO] Loaded 359 entries from results diary
+2026-07-09 14:32:53 [INFO] ======================================================================
+2026-07-09 14:32:53 [INFO] STEP 1: Loading predictions
+2026-07-09 14:32:53 [INFO] ======================================================================
+2026-07-09 14:32:53 [INFO]   RF + ECFP4 + AAC                          RMSE=1.0065  R=0.7467
+2026-07-09 14:32:53 [INFO]   XGBoost + ECFP4 + AAC                     RMSE=1.0523  R=0.7184
+2026-07-09 14:32:53 [INFO]   LightGBM + ECFP4 + AAC                    RMSE=1.0528  R=0.7197
+2026-07-09 14:32:53 [INFO]   MLP + ChemBERTa-5M + ESM-2-8M             RMSE=1.1931  R=0.6472
+2026-07-09 14:32:53 [INFO]   XGBoost + ChemBERTa + ESM-2-650M          RMSE=1.0434  R=0.7242
+2026-07-09 14:32:53 [INFO]   BiCA + ChemBERTa + ESM-2-8M               RMSE=1.1764  R=0.6551
+2026-07-09 14:32:53 [INFO] 
+  All predictions verified: same test set (4,715 compounds)
+2026-07-09 14:32:53 [INFO] ======================================================================
+2026-07-09 14:32:53 [INFO] STEP 2: Enrichment factor computation
+2026-07-09 14:32:53 [INFO] ======================================================================
+2026-07-09 14:32:53 [INFO] 
+  Active threshold: pKd ≥ 6.0 → 2770 actives (58.7%)
+2026-07-09 14:32:53 [INFO] 
+  Active threshold: pKd ≥ 7.0 → 1482 actives (31.4%)
+2026-07-09 14:32:53 [INFO] 
+==================================================
+2026-07-09 14:32:53 [INFO] KEY COMPARISON: RF vs DL at top-5%
+2026-07-09 14:32:53 [INFO] ==================================================
+2026-07-09 14:32:53 [INFO]   pKd ≥ 6.0: RF EF=1.70 vs DL EF=1.55
+2026-07-09 14:32:53 [INFO]     RF finds 21 more actives in top-5% (235 vs 214)
+2026-07-09 14:32:53 [INFO]   pKd ≥ 7.0: RF EF=3.13 vs DL EF=2.44
+2026-07-09 14:32:53 [INFO]     RF finds 51 more actives in top-5% (231 vs 180)
+2026-07-09 14:32:53 [INFO] 
+==================================================
+2026-07-09 14:32:53 [INFO] STEP 3: Kendall τ between rankings
+2026-07-09 14:32:53 [INFO] ==================================================
+2026-07-09 14:32:53 [INFO]   rf_ecfp4_aac                   ↔ xgb_ecfp4_aac                   τ=0.7442
+2026-07-09 14:32:53 [INFO]   rf_ecfp4_aac                   ↔ lgbm_ecfp4_aac                  τ=0.7374
+2026-07-09 14:32:53 [INFO]   rf_ecfp4_aac                   ↔ mlp_chemberta_esm2_8M           τ=0.5841
+2026-07-09 14:32:53 [INFO]   rf_ecfp4_aac                   ↔ xgb_chemberta_5M_esm2_650M      τ=0.6733
+2026-07-09 14:32:53 [INFO]   rf_ecfp4_aac                   ↔ bica_chemberta_esm2_8M          τ=0.5580
+2026-07-09 14:32:53 [INFO]   xgb_ecfp4_aac                  ↔ lgbm_ecfp4_aac                  τ=0.8176
+2026-07-09 14:32:53 [INFO]   xgb_ecfp4_aac                  ↔ mlp_chemberta_esm2_8M           τ=0.5927
+2026-07-09 14:32:53 [INFO]   xgb_ecfp4_aac                  ↔ xgb_chemberta_5M_esm2_650M      τ=0.6342
+2026-07-09 14:32:53 [INFO]   xgb_ecfp4_aac                  ↔ bica_chemberta_esm2_8M          τ=0.5842
+2026-07-09 14:32:53 [INFO]   lgbm_ecfp4_aac                 ↔ mlp_chemberta_esm2_8M           τ=0.5938
+2026-07-09 14:32:53 [INFO]   lgbm_ecfp4_aac                 ↔ xgb_chemberta_5M_esm2_650M      τ=0.6411
+2026-07-09 14:32:53 [INFO]   lgbm_ecfp4_aac                 ↔ bica_chemberta_esm2_8M          τ=0.5636
+2026-07-09 14:32:53 [INFO]   mlp_chemberta_esm2_8M          ↔ xgb_chemberta_5M_esm2_650M      τ=0.5922
+2026-07-09 14:32:53 [INFO]   mlp_chemberta_esm2_8M          ↔ bica_chemberta_esm2_8M          τ=0.6776
+2026-07-09 14:32:53 [INFO]   xgb_chemberta_5M_esm2_650M     ↔ bica_chemberta_esm2_8M          τ=0.5620
+2026-07-09 14:32:53 [INFO] 
+==================================================
+2026-07-09 14:32:53 [INFO] STEP 4: Missed actives (RF finds, DL misses)
+2026-07-09 14:32:53 [INFO] ==================================================
+2026-07-09 14:32:53 [INFO]   Top-100 overlap: 27 compounds
+2026-07-09 14:32:53 [INFO]   Found by RF but missed by DL: 73
+2026-07-09 14:32:53 [INFO]   Found by DL but missed by RF: 73
+2026-07-09 14:32:53 [INFO]   Of 73 missed by DL: 73 are real actives (pKd ≥ 6.0)
+2026-07-09 14:32:53 [INFO]   Of 73 missed by DL: 73 are real actives (pKd ≥ 7.0)
+2026-07-09 14:32:53 [INFO] 
+  Full ranking comparison saved (4,715 compounds)
+2026-07-09 14:32:53 [INFO] 
+==================================================
+2026-07-09 14:32:53 [INFO] STEP 5: Enrichment plot
+2026-07-09 14:32:53 [INFO] ==================================================
+2026-07-09 14:32:54 [INFO]   Saved enrichment_plot.pdf and enrichment_plot.png
+2026-07-09 14:32:54 [INFO] 
+==================================================
+2026-07-09 14:32:54 [INFO] E206 COMPLETE
+2026-07-09 14:32:54 [INFO] ==================================================

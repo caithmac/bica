@@ -1,0 +1,9 @@
+model,rmse,source
+RF+ECFP4+AAC (ours),1.007,Our benchmark (E000)
+RF+ECFP4+ESM2 (ours),1.013,Our benchmark (E000)
+MLP+ChemBERTa+ESM2 (ours),1.161,Our benchmark (E000)
+BiCA+ChemBERTa+ESM2 (ours),1.119,Our benchmark (E000)
+BALM RF,1.02,BALM paper Table 2
+BALM GNN (GVP),1.082,BALM paper Table 2
+BALM DeepDTA,1.131,BALM paper Table 2
+PSICHIC (zero-shot),1.176,Our E008 result

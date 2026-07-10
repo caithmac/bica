@@ -1,0 +1,10 @@
+experiment: E206
+description: Enrichment and ranking analysis
+activity_thresholds:
+- 6.0
+- 7.0
+top_percentiles:
+- 1
+- 5
+- 10
+timestamp: '2026-07-09T14:32:53.804788'
