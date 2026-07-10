@@ -75,6 +75,10 @@ def run_exp(exp_name: str, dataset: str = "bindingdb", seed: int = 42,
     # Compute the experiment_id that would be logged
     if dataset == "leakypdb":
         exp_id = f"{exp_name}__leakypdb"
+    elif dataset == "bindingdb_cold_target":
+        exp_id = f"{exp_name}__cold_target"
+    elif dataset == "bindingdb_cold_drug":
+        exp_id = f"{exp_name}__cold_drug"
     elif seed != 42:
         exp_id = f"{exp_name}__seed{seed}"
     else:
@@ -86,8 +90,9 @@ def run_exp(exp_name: str, dataset: str = "bindingdb", seed: int = 42,
 
     cmd = [PYTHON, "run_experiment.py",
            "--exp", exp_name,
-           "--dataset", dataset,
-           "--seed", str(seed)]
+           "--dataset", dataset]
+    if dataset == "bindingdb":
+        cmd += ["--seed", str(seed)]
 
     print(f"\n{'─'*60}")
     print(f"  Running: {exp_id}")
@@ -258,6 +263,17 @@ BICA_V2_EXPERIMENTS = [
     "bica_v2_cb77M_mtr_esm2_150M",
 ]
 
+# Generalization sweep — top models only × 3 splits (leakypdb, cold_target, cold_drug)
+# Covers: best baseline, best tree, best MLP, best cross-attention (BiCA v2)
+GENERALIZATION_EXPERIMENTS = [
+    "ridge_ecfp4_aac",       # linear baseline
+    "rf_ecfp4_aac",          # best overall model
+    "xgb_ecfp4_aac",         # best tree (gradient boosting)
+    "mlp_chemberta_esm2_8M", # best MLP
+    "bica_chemberta_esm2_8M",# BiCA v1 (cross-attention baseline)
+    "bica_v2_chemberta77M_tokens",  # BiCA v2 (main model)
+]
+
 # Experiments to run on LeakyPDB
 LEAKYPDB_EXPERIMENTS = [
     # Fast baselines and best models — gives cross-dataset comparison
@@ -311,6 +327,13 @@ def build_phase_list(only: str = None, skip_slow: bool = False):
     leaky = [{"exp_name": e, "dataset": "leakypdb", "seed": 42}
              for e in LEAKYPDB_EXPERIMENTS]
     phases.append(("leakypdb_base", leaky))
+
+    generalization = (
+        [{"exp_name": e, "dataset": "leakypdb"}          for e in GENERALIZATION_EXPERIMENTS] +
+        [{"exp_name": e, "dataset": "bindingdb_cold_target"} for e in GENERALIZATION_EXPERIMENTS] +
+        [{"exp_name": e, "dataset": "bindingdb_cold_drug"}   for e in GENERALIZATION_EXPERIMENTS]
+    )
+    phases.append(("generalization", generalization))
 
     if only:
         phases = [(n, e) for n, e in phases if n == only]

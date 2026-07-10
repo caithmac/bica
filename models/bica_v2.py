@@ -210,9 +210,9 @@ class BiCA_v2(nn.Module):
         self,
         protein_dim:  int   = 480,
         ligand_dim:   int   = 78,
-        hidden_dim:   int   = 512,
+        hidden_dim:   int   = 256,
         num_heads:    int   = 8,
-        num_layers:   int   = 2,
+        num_layers:   int   = 3,
         dropout:      float = 0.1,
         drop_path:    float = 0.1,
         use_ffn:      bool  = True,
@@ -265,22 +265,25 @@ class BiCA_v2(nn.Module):
             nn.Dropout(dropout),
         )
 
-        # Predictor: layer norm instead of batch norm for inference stability
+        # Predictor: ReLU + no LayerNorm.
+        # LayerNorm in a regression head destroys magnitude information
+        # and causes the model to collapse to predicting the mean.
+        # ReLU is preferred over GELU — simpler gradient flow for regression.
         self.predictor = nn.Sequential(
             nn.Linear(hidden_dim * 2, 512),
-            nn.LayerNorm(512),
-            nn.GELU(),
+            nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(512, 256),
-            nn.LayerNorm(256),
-            nn.GELU(),
+            nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(256, 128),
-            nn.LayerNorm(128),
-            nn.GELU(),
+            nn.ReLU(),
             nn.Dropout(dropout / 2),
             nn.Linear(128, 1),
         )
+
+
+
 
     def _pool(self, x: torch.Tensor,
               mask: Optional[torch.Tensor],
@@ -431,9 +434,9 @@ class BiCA_v2_NoResidual(nn.Module):
         self.lig_proj2  = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.GELU())
 
         self.predictor = nn.Sequential(
-            nn.Linear(hidden_dim * 2, 512), nn.LayerNorm(512), nn.GELU(), nn.Dropout(dropout),
-            nn.Linear(512, 256), nn.LayerNorm(256), nn.GELU(), nn.Dropout(dropout),
-            nn.Linear(256, 128), nn.LayerNorm(128), nn.GELU(), nn.Dropout(dropout / 2),
+            nn.Linear(hidden_dim * 2, 512), nn.ReLU(), nn.Dropout(dropout),
+            nn.Linear(512, 256), nn.ReLU(), nn.Dropout(dropout),
+            nn.Linear(256, 128), nn.ReLU(), nn.Dropout(dropout / 2),
             nn.Linear(128, 1),
         )
 
@@ -509,9 +512,9 @@ class BiCA_v2_P2L_only(nn.Module):
         self.prot_proj2 = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.GELU())
         self.lig_proj2  = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.GELU())
         self.predictor = nn.Sequential(
-            nn.Linear(hidden_dim * 2, 512), nn.LayerNorm(512), nn.GELU(), nn.Dropout(dropout),
-            nn.Linear(512, 256), nn.LayerNorm(256), nn.GELU(), nn.Dropout(dropout),
-            nn.Linear(256, 128), nn.LayerNorm(128), nn.GELU(), nn.Dropout(dropout / 2),
+            nn.Linear(hidden_dim * 2, 512), nn.ReLU(), nn.Dropout(dropout),
+            nn.Linear(512, 256), nn.ReLU(), nn.Dropout(dropout),
+            nn.Linear(256, 128), nn.ReLU(), nn.Dropout(dropout / 2),
             nn.Linear(128, 1),
         )
 
@@ -569,9 +572,9 @@ class BiCA_v2_L2P_only(nn.Module):
         self.prot_proj2 = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.GELU())
         self.lig_proj2  = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.GELU())
         self.predictor = nn.Sequential(
-            nn.Linear(hidden_dim * 2, 512), nn.LayerNorm(512), nn.GELU(), nn.Dropout(dropout),
-            nn.Linear(512, 256), nn.LayerNorm(256), nn.GELU(), nn.Dropout(dropout),
-            nn.Linear(256, 128), nn.LayerNorm(128), nn.GELU(), nn.Dropout(dropout / 2),
+            nn.Linear(hidden_dim * 2, 512), nn.ReLU(), nn.Dropout(dropout),
+            nn.Linear(512, 256), nn.ReLU(), nn.Dropout(dropout),
+            nn.Linear(256, 128), nn.ReLU(), nn.Dropout(dropout / 2),
             nn.Linear(128, 1),
         )
 
@@ -683,9 +686,9 @@ def build_bica_v2(
     protein_dim: int,
     ligand_dim:  int,
     variant:     str   = "bica_v2",
-    hidden_dim:  int   = 512,
+    hidden_dim:  int   = 256,
     num_heads:   int   = 8,
-    num_layers:  int   = 2,
+    num_layers:  int   = 3,
     dropout:     float = 0.1,
     drop_path:   float = 0.1,
 ) -> nn.Module:

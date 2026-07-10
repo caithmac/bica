@@ -38,7 +38,7 @@ from tqdm import tqdm
 
 from harness.config import PROTEIN_COL, SMILES_COL, LABEL_COL
 from harness.data import get_splits_for_seed
-from models.bica_v2 import build_bica_v2
+from models.bica_v2_1 import build_bica_v2
 
 # ── Config ────────────────────────────────────────────────────────────────────
 CHECKPOINT    = Path("cache/models/bica_v2_chemberta77M_tokens.pt")

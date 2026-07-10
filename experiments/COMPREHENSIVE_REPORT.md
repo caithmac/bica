@@ -80,21 +80,28 @@
 
 **Takeaway:** You can squeeze ~0.04 from DL tuning. RF (1.007) still wins by a wide margin. Architecture changes are marginal.
 
+**Figure:** `runs/E202/finetuning_sweep.png`
+
 ---
 
 ### E203 — PSICHIC Diagnostic
 **Status:** ✅ (completed! Random split result obtained)  
 **Question:** Does PSICHIC, a structure-aware GNN, suffer the same generalization gap?  
-**Method:** Fine-tune PSICHIC on both scaffold and random splits.  
+**Method:** Fine-tune PSICHIC on both scaffold and random splits. Track validation RMSE during training.  
 **Result:**
 
 | Split | PSICHIC RMSE |
 |-------|-------------|
-| Scaffold | 1.176 |
-| Random | **1.008** |
-| **Gap** | **0.168** |
+| Zero-Shot (scaffold) | 1.787 |
+| Fine-Tuned (scaffold) | 1.176 |
+| Fine-Tuned (random) | **1.008** |
+| **Scaffold→Random Gap** | **0.168** |
+
+**Training dynamics (random split):** Val RMSE drops smoothly from 1.178 (step 1081) → 1.040 (step 5000) during fine-tuning. Final test RMSE (1.008) is below the lowest val RMSE — no overfitting, just improved generalization because random split leaks scaffold information.
 
 **Takeaway:** PSICHIC drops 0.168 RMSE simply from seeing test-set-like scaffolds in training. On scaffold split, it's worse than RF (1.007). This is the clearest evidence of memorization: the model isn't learning physics, it's memorizing scaffold patterns. When those patterns are disrupted (random split), performance improves dramatically — the exact OPPOSITE of what generalization should look like.
+
+**Figure:** `runs/E203/psichic_split_comparison.png`
 
 ---
 
@@ -136,8 +143,17 @@ RF and LightGBM agree on 43% of top bits. XGBoost is an outlier — its feature 
 
 ### E206 — Enrichment Analysis
 **Status:** ✅  
-**Question:** Do RF and DL rank the same compounds as top hits?  
-**Method:** For each model, rank test compounds by predicted pKd. Measure overlap in top-1%, top-5%, top-10%. Compute enrichment factor (EF) at activity thresholds pKd ≥ 6 and ≥ 7.  
+**Question:** Do RF and DL rank the same compounds as top hits? Does the RMSE gap matter for virtual screening?
+
+**Method (step-by-step):**
+1. **Load predictions:** Saved `.npz` files from E000 benchmark for 6 representative models (RF, XGBoost, LightGBM, MLP, BiCA, pretrained XGBoost).
+2. **Rank compounds** by predicted pKd (descending) within each model.
+3. **Compute Enrichment Factor** at activity thresholds pKd ≥ 6 (Kd ≤ 1 µM) and pKd ≥ 7 (Kd ≤ 100 nM):
+   - EF = (actives found in top-N%) / (expected actives by random chance)
+   - Random baseline = 1.0. EF > 1 means better than random.
+4. **Kendall τ ranking correlation** between all model pairs — measures how similarly two models order compounds.
+5. **Missed actives:** For RF vs DL specifically, how many real actives (pKd ≥ 7) does the DL model miss in its top-100 that RF would have found?
+
 **Result at pKd ≥ 7 (stringent):**
 
 | Model | Top-1% EF | Top-5% EF | Top-10% EF |
@@ -148,7 +164,11 @@ RF and LightGBM agree on 43% of top bits. XGBoost is an outlier — its feature 
 | MLP (DL) | 2.78 | 2.44 | 2.21 |
 | BiCA (DL) | 2.91 | 2.55 | 2.32 |
 
-RF and DL share only ~27% of top-100 hits. The compounds they prioritize are substantially different. For a medicinal chemist, model choice changes which molecules get synthesized.
+**Top-100 overlap:** RF and DL share only **27/100** top-ranked compounds. 73 compounds in RF's top-100 are NOT in DL's top-100. Of those 73 missed by DL, a significant fraction are real actives that would be missed in a virtual screen.
+
+**Kendall τ** between RF and DL rankings ≈ 0.56 — moderately correlated but far from identical.
+
+**Takeaway:** The 0.15 RMSE gap has real practical consequences. For a medicinal chemist screening 100 compounds, model choice changes which molecules get synthesized. RF consistently finds more actives at every enrichment threshold.
 
 **Figure:** `runs/E206/enrichment_plot.png`
 
@@ -311,11 +331,13 @@ Deeper models overfit more. They memorize scaffold-specific patterns that don't 
 ## Figures (all in `E:/Drug Discovery/experiments/runs/`)
 
 1. **Overlap Heatmap** — `E102/overlap_heatmap.png` — Scaffold/SMILES leakage between BindingDB and LeakPDB
-2. **Learning Curves** — `E201/learning_curves.png` — RF vs MLP at 6 data sizes, 3 seeds each
-3. **Bit Overlap Venn** — `E205/bit_overlap_venn.png` — Top-30 ECFP4 bit overlap across tree models
-4. **Enrichment Plot** — `E206/enrichment_plot.png` — Enrichment factor comparison across models
-5. **Calibration Plot** — `E302/calibration_plot.png` — Error calibration curves for all models
-6. **Overfitting Curves** — `GAP3/overfitting.png` — Train vs val RMSE by model depth
+2. **Learning Curves** — `E201/learning_curves.png` — RF vs MLP at 6 data sizes, 3 seeds each. Gap widens with data.
+3. **Finetuning Sweep** — `E202/finetuning_sweep.png` — DL RMSE by architecture: shallow, medium, deep, high-dropout, low-LR. RF baseline shown. Gap floor +0.115.
+4. **PSICHIC Split Comparison** — `E203/psichic_split_comparison.png` — Left: val RMSE during random-split fine-tuning. Right: bar chart comparing zero-shot (1.787) → scaffold FT (1.176) → random FT (1.008). Annotated memorization gap.
+5. **Bit Overlap Venn** — `E205/bit_overlap_venn.png` — Top-30 ECFP4 bit overlap across RF, XGBoost, LightGBM
+6. **Enrichment Plot** — `E206/enrichment_plot.png` — Enrichment factor at pKd ≥ 6 and ≥ 7. RF consistently outperforms DL.
+7. **Calibration Plot** — `E302/calibration_plot.png` — Error calibration curves for all models
+8. **Overfitting Curves** — `GAP3/overfitting.png` — Train vs val RMSE across 100 epochs for shallow [256], medium [512,256], and deep [512,256,128] MLPs. Titles now correctly label each architecture.
 
 ---
 

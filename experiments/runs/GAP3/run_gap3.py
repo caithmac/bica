@@ -89,13 +89,16 @@ pd.concat(all_curves).to_csv(EXP_DIR / "all_curves.csv", index=False)
 # Plot
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+ARCH_LABELS = {"shallow": ("[256]", 1), "medium": ("[512, 256]", 2), "deep": ("[512, 256, 128]", 3)}
+
 fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 for ax, name in zip(axes, ["shallow", "medium", "deep"]):
     df = pd.read_csv(EXP_DIR / f"curves_{name}.csv")
     ax.plot(df["epoch"], df["train_rmse"], label="Train", color="#1b7837", linewidth=2)
     ax.plot(df["epoch"], df["val_rmse"], label="Val", color="#762a83", linewidth=2)
     ax.fill_between(df["epoch"], df["train_rmse"], df["val_rmse"], alpha=0.15, color="gray")
-    ax.set_title(f"MLP {name} [{hidden}], {len(hidden)} layers", fontsize=12)
+    arch_str, n_layers = ARCH_LABELS[name]
+    ax.set_title(f"MLP {name} {arch_str}, {n_layers} layer{'s' if n_layers > 1 else ''}", fontsize=12)
     ax.set_xlabel("Epoch"); ax.set_ylabel("RMSE")
     ax.legend(); ax.grid(True, alpha=0.3)
 plt.tight_layout()

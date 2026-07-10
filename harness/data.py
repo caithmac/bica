@@ -255,6 +255,106 @@ def get_leakypdb_splits() -> tuple:
     return train_df, val_df, test_df
 
 
+# ── Cold-target split (BindingDB) ────────────────────────────────────────────
+
+def get_cold_drug_splits(seed: int = SPLIT_SEED, df: pd.DataFrame | None = None):
+    """
+    Cold-drug split of BindingDB_filtered: all pairs for a given drug
+    appear exclusively in one partition. Drugs are shuffled by seed and
+    assigned greedily to train / val / test at ~70/15/15 fraction.
+    Cached to cache/splits/cold_drug_seed{seed}.pkl.
+    """
+    split_file = SPLIT_DIR / f"cold_drug_seed{seed}.pkl"
+
+    if split_file.exists():
+        with open(split_file, "rb") as f:
+            train_idx, val_idx, test_idx = pickle.load(f)
+    else:
+        if df is None:
+            df = load_raw()
+
+        rng = np.random.default_rng(seed)
+        drugs = df[SMILES_COL].values
+        unique_drugs = list(dict.fromkeys(drugs))
+        rng.shuffle(unique_drugs)
+
+        drug_to_rows: dict[str, list[int]] = {}
+        for idx, d in enumerate(drugs):
+            drug_to_rows.setdefault(d, []).append(idx)
+
+        n_total = len(df)
+        train_idx, val_idx, test_idx = [], [], []
+        for d in unique_drugs:
+            rows = drug_to_rows[d]
+            if len(train_idx) / max(n_total, 1) < TRAIN_FRAC:
+                train_idx.extend(rows)
+            elif len(val_idx) / max(n_total, 1) < VAL_FRAC:
+                val_idx.extend(rows)
+            else:
+                test_idx.extend(rows)
+
+        with open(split_file, "wb") as f:
+            pickle.dump((train_idx, val_idx, test_idx), f)
+        print(f"[data] Cold-drug splits → train={len(train_idx):,} "
+              f"val={len(val_idx):,} test={len(test_idx):,}")
+
+    if df is None:
+        df = load_raw()
+
+    return (df.iloc[train_idx].reset_index(drop=True),
+            df.iloc[val_idx  ].reset_index(drop=True),
+            df.iloc[test_idx ].reset_index(drop=True))
+
+
+def get_cold_target_splits(seed: int = SPLIT_SEED, df: pd.DataFrame | None = None):
+    """
+    Cold-target split of BindingDB_filtered: all pairs for a given target
+    appear exclusively in one partition. Targets are shuffled by seed and
+    assigned greedily to train / val / test at ~70/15/15 fraction.
+    Cached to cache/splits/cold_target_seed{seed}.pkl.
+    """
+    split_file = SPLIT_DIR / f"cold_target_seed{seed}.pkl"
+
+    if split_file.exists():
+        with open(split_file, "rb") as f:
+            train_idx, val_idx, test_idx = pickle.load(f)
+    else:
+        if df is None:
+            df = load_raw()
+
+        rng = np.random.default_rng(seed)
+        targets = df["Target_ID"].values if "Target_ID" in df.columns else df[PROTEIN_COL].values
+        unique_targets = list(dict.fromkeys(targets))   # preserve order, then shuffle
+        rng.shuffle(unique_targets)
+
+        target_to_rows: dict[str, list[int]] = {}
+        for idx, t in enumerate(targets):
+            target_to_rows.setdefault(t, []).append(idx)
+
+        n_total = len(df)
+        train_idx, val_idx, test_idx = [], [], []
+        for t in unique_targets:
+            rows = target_to_rows[t]
+            if len(train_idx) / max(n_total, 1) < TRAIN_FRAC:
+                train_idx.extend(rows)
+            elif len(val_idx) / max(n_total, 1) < VAL_FRAC:
+                val_idx.extend(rows)
+            else:
+                test_idx.extend(rows)
+
+        with open(split_file, "wb") as f:
+            pickle.dump((train_idx, val_idx, test_idx), f)
+        print(f"[data] Cold-target splits → train={len(train_idx):,} "
+              f"val={len(val_idx):,} test={len(test_idx):,}")
+
+    if df is None:
+        df = load_raw()
+
+    return (df.iloc[train_idx].reset_index(drop=True),
+            df.iloc[val_idx  ].reset_index(drop=True),
+            df.iloc[test_idx ].reset_index(drop=True))
+
+
 # ── Multi-seed splits (BindingDB only) ───────────────────────────────────────
 
 def get_splits_for_seed(seed: int, df: pd.DataFrame | None = None):
