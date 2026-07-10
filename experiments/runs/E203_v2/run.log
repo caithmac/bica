@@ -1,0 +1,18 @@
+2026-07-10 14:50:16,419 [INFO] Prepared scaffold_data/ with train.csv, val.csv, test.csv
+2026-07-10 14:50:16,427 [INFO] Prepared random_data/ with train.csv, val.csv, test.csv
+2026-07-10 14:50:16,428 [INFO] 
+============================================================
+  PSICHIC main.py — scaffold split
+============================================================
+2026-07-10 14:50:16,428 [INFO]   Running: C:/Users/ss864/AppData/Local/miniconda3/envs/drug_discovery/python.exe E:\Drug Discovery\PSICHIC\main.py --datafolder E:\Drug Discovery\experiments\runs\E203_v2\scaffold_data --result_path E:\Drug Discovery\experiments\runs\E203_v2\scaffold_result/ --config_path E:\Drug Discovery\PSICHIC\trained_weights\PDBv2020_PSICHIC\config.json --trained_model_path E:\Drug Discovery\PSICHIC\trained_weights\PDBv2020_PSICHIC --regression_task True --total_iters 5000 --evaluate_step 200 --lrate 1e-5 --batch_size 16 --seed 1 --save_interpret False --device cuda
+2026-07-10 15:28:57,920 [INFO]   Completed in 38.7 min
+2026-07-10 15:28:57,920 [INFO]   full_result-1.txt: 24,946 bytes
+2026-07-10 15:28:57,920 [INFO] 
+============================================================
+  PSICHIC main.py — random split
+============================================================
+2026-07-10 15:28:57,920 [INFO]   Running: C:/Users/ss864/AppData/Local/miniconda3/envs/drug_discovery/python.exe E:\Drug Discovery\PSICHIC\main.py --datafolder E:\Drug Discovery\experiments\runs\E203_v2\random_data --result_path E:\Drug Discovery\experiments\runs\E203_v2\random_result/ --config_path E:\Drug Discovery\PSICHIC\trained_weights\PDBv2020_PSICHIC\config.json --trained_model_path E:\Drug Discovery\PSICHIC\trained_weights\PDBv2020_PSICHIC --regression_task True --total_iters 5000 --evaluate_step 200 --lrate 1e-5 --batch_size 16 --seed 1 --save_interpret False --device cuda
+2026-07-10 16:48:39,676 [INFO]   Completed in 79.7 min
+2026-07-10 16:48:39,676 [INFO]   full_result-1.txt: 24,966 bytes
+2026-07-10 16:48:39,676 [INFO] 
+E203 v2 complete
