@@ -1,0 +1,53 @@
+2026-07-11 14:43:01,232 [INFO] Device: cuda
+2026-07-11 14:43:01,232 [INFO] Loading BALM/BALM-benchmark BindingDB_filtered...
+2026-07-11 14:43:04,780 [INFO]   Raw: 24700 rows
+2026-07-11 14:43:04,812 [INFO]   After BALM aggregation: 20484 rows
+2026-07-11 14:43:04,827 [INFO]   Unique drugs: 9163, targets: 1069
+2026-07-11 14:43:04,834 [INFO] Cold-drug split (seed=42): 15802 train, 4682 test
+2026-07-11 14:43:04,836 [INFO]   √ No drug overlap
+2026-07-11 14:43:04,836 [INFO] Loading ESM-2: facebook/esm2_t6_8M_UR50D
+2026-07-11 14:43:06,046 [INFO] Loading ChemBERTa: DeepChem/ChemBERTa-77M-MTR
+2026-07-11 14:43:06,862 [INFO] Computing ESM-2 protein embeddings...
+2026-07-11 14:49:08,250 [INFO]   ESM-2 shape: (20484, 320)
+2026-07-11 14:49:08,250 [INFO] Computing ChemBERTa drug embeddings...
+2026-07-11 14:49:13,032 [INFO]   ChemBERTa shape: (20484, 384)
+2026-07-11 14:49:13,043 [INFO]   Combined features: (20484, 704)
+2026-07-11 14:49:13,087 [INFO] Features saved to E:\Drug Discovery\experiments\runs\E202_BALM/
+2026-07-11 14:49:13,087 [INFO] 
+=== RF Baseline ===
+2026-07-11 14:50:47,020 [INFO]   RF seed=42: RMSE=0.9346, R=0.7648
+2026-07-11 14:52:06,562 [INFO]   RF seed=123: RMSE=0.9346, R=0.7648
+2026-07-11 14:53:26,294 [INFO]   RF seed=456: RMSE=0.9356, R=0.7642
+2026-07-11 14:53:26,294 [INFO]   RF baseline: RMSE=0.9349±0.0006, R=0.7646
+2026-07-11 14:53:26,294 [INFO] 
+=== MLP Sweep ===
+2026-07-11 14:53:45,402 [INFO]   shallow         seed=42 RMSE=1.0757 R=0.6796 ep=100 t=19s
+2026-07-11 14:54:04,197 [INFO]   shallow         seed=123 RMSE=1.0664 R=0.6733 ep=100 t=19s
+2026-07-11 14:54:22,952 [INFO]   shallow         seed=456 RMSE=1.0832 R=0.6824 ep=100 t=19s
+2026-07-11 14:54:40,664 [INFO]   medium          seed=42 RMSE=1.0520 R=0.7046 ep=100 t=18s
+2026-07-11 14:54:57,470 [INFO]   medium          seed=123 RMSE=1.0314 R=0.7082 ep=100 t=17s
+2026-07-11 14:55:16,843 [INFO]   medium          seed=456 RMSE=1.0317 R=0.7119 ep=100 t=19s
+2026-07-11 14:55:37,446 [INFO]   deep            seed=42 RMSE=1.0232 R=0.7075 ep=100 t=21s
+2026-07-11 14:55:56,727 [INFO]   deep            seed=123 RMSE=1.0394 R=0.7037 ep=100 t=19s
+2026-07-11 14:56:16,324 [INFO]   deep            seed=456 RMSE=1.0685 R=0.6934 ep=100 t=20s
+2026-07-11 14:56:35,798 [INFO]   deep_hidrop     seed=42 RMSE=1.0432 R=0.6864 ep=100 t=19s
+2026-07-11 14:56:54,117 [INFO]   deep_hidrop     seed=123 RMSE=1.0398 R=0.6888 ep=100 t=18s
+2026-07-11 14:57:16,159 [INFO]   deep_hidrop     seed=456 RMSE=1.0135 R=0.7103 ep=100 t=22s
+2026-07-11 14:57:39,177 [INFO]   deep_lowlr      seed=42 RMSE=1.0640 R=0.6853 ep=100 t=23s
+2026-07-11 14:58:01,937 [INFO]   deep_lowlr      seed=123 RMSE=1.0632 R=0.6909 ep=100 t=23s
+2026-07-11 14:58:25,240 [INFO]   deep_lowlr      seed=456 RMSE=1.0855 R=0.6858 ep=100 t=23s
+2026-07-11 14:58:25,243 [INFO] 
+================================================================================
+2026-07-11 14:58:25,243 [INFO] SUMMARY — MLP head sweep on BALM cold-drug split
+2026-07-11 14:58:25,243 [INFO] ================================================================================
+2026-07-11 14:58:25,244 [INFO]   shallow        : RMSE=1.0751±0.0084  best=1.0664  R=0.6784
+2026-07-11 14:58:25,244 [INFO]   medium         : RMSE=1.0383±0.0118  best=1.0314  R=0.7082
+2026-07-11 14:58:25,245 [INFO]   deep           : RMSE=1.0437±0.0229  best=1.0232  R=0.7015
+2026-07-11 14:58:25,245 [INFO]   deep_hidrop    : RMSE=1.0322±0.0163  best=1.0135  R=0.6952
+2026-07-11 14:58:25,246 [INFO]   deep_lowlr     : RMSE=1.0709±0.0127  best=1.0632  R=0.6873
+2026-07-11 14:58:25,246 [INFO] 
+  RF baseline: 0.9349±0.0006
+2026-07-11 14:58:25,246 [INFO]   Best DL:     1.0135 (gap: +0.0786)
+2026-07-11 14:58:25,251 [INFO] 
+Results saved to E:\Drug Discovery\experiments\runs\E202_BALM/
+2026-07-11 14:58:25,251 [INFO] Done.

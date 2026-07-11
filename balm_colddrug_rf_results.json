@@ -1,0 +1,130 @@
+[
+  {
+    "dataset": "BindingDB_filtered",
+    "N": 20484,
+    "n_unique_drugs": 9163,
+    "RMSE_mean": 0.9396,
+    "RMSE_std": 0.0084,
+    "Pearson_R_mean": 0.7647,
+    "Pearson_R_std": 0.0029,
+    "seeds": [
+      {
+        "seed": 42,
+        "RMSE": 0.9346048622233224,
+        "Pearson_R": 0.7647952502586821,
+        "N_train": 15802,
+        "N_test": 4682
+      },
+      {
+        "seed": 123,
+        "RMSE": 0.9348372593208393,
+        "Pearson_R": 0.7617367903810777,
+        "N_train": 15903,
+        "N_test": 4581
+      },
+      {
+        "seed": 1234,
+        "RMSE": 0.9492418604068781,
+        "Pearson_R": 0.7676351494581766,
+        "N_train": 16314,
+        "N_test": 4170
+      }
+    ]
+  },
+  {
+    "dataset": "Mpro",
+    "N": 2062,
+    "n_unique_drugs": 2062,
+    "RMSE_mean": 1.4422,
+    "RMSE_std": 0.0076,
+    "Pearson_R_mean": 0.3121,
+    "Pearson_R_std": 0.0221,
+    "seeds": [
+      {
+        "seed": 42,
+        "RMSE": 1.4473460746215323,
+        "Pearson_R": 0.33208586571359705,
+        "N_train": 1650,
+        "N_test": 412
+      },
+      {
+        "seed": 123,
+        "RMSE": 1.4459084739743389,
+        "Pearson_R": 0.2884482751019054,
+        "N_train": 1650,
+        "N_test": 412
+      },
+      {
+        "seed": 1234,
+        "RMSE": 1.4334378411249937,
+        "Pearson_R": 0.3158424896503112,
+        "N_train": 1650,
+        "N_test": 412
+      }
+    ]
+  },
+  {
+    "dataset": "USP7",
+    "N": 1799,
+    "n_unique_drugs": 1799,
+    "RMSE_mean": 0.5278,
+    "RMSE_std": 0.0224,
+    "Pearson_R_mean": 0.9107,
+    "Pearson_R_std": 0.0075,
+    "seeds": [
+      {
+        "seed": 42,
+        "RMSE": 0.5142597594970736,
+        "Pearson_R": 0.9192154041933682,
+        "N_train": 1440,
+        "N_test": 359
+      },
+      {
+        "seed": 123,
+        "RMSE": 0.515483196512715,
+        "Pearson_R": 0.9080062957355941,
+        "N_train": 1440,
+        "N_test": 359
+      },
+      {
+        "seed": 1234,
+        "RMSE": 0.5535941905577362,
+        "Pearson_R": 0.9049240540884873,
+        "N_train": 1440,
+        "N_test": 359
+      }
+    ]
+  },
+  {
+    "dataset": "LeakyPDB",
+    "N": 19121,
+    "n_unique_drugs": 15476,
+    "RMSE_mean": 1.3572,
+    "RMSE_std": 0.0255,
+    "Pearson_R_mean": 0.7099,
+    "Pearson_R_std": 0.011,
+    "seeds": [
+      {
+        "seed": 42,
+        "RMSE": 1.3751135559734733,
+        "Pearson_R": 0.6977274224510379,
+        "N_train": 15354,
+        "N_test": 3767
+      },
+      {
+        "seed": 123,
+        "RMSE": 1.3684717335035024,
+        "Pearson_R": 0.7129993835192661,
+        "N_train": 15325,
+        "N_test": 3796
+      },
+      {
+        "seed": 1234,
+        "RMSE": 1.3279786981954556,
+        "Pearson_R": 0.7191084326320889,
+        "N_train": 15324,
+        "N_test": 3797
+      }
+    ]
+  }
+]

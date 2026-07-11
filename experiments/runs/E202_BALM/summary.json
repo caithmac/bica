@@ -1,0 +1,48 @@
+{
+  "dataset": "BALM BindingDB_filtered (cold-drug split)",
+  "n_train": 15802,
+  "n_test": 4682,
+  "n_unique_drugs": 9163,
+  "rf_baseline": {
+    "rmse_mean": 0.9349320129955728,
+    "rmse_std": 0.0005764136817305039,
+    "pearson_r_mean": 0.7645809327920468
+  },
+  "dl_configs": [
+    {
+      "name": "shallow",
+      "rmse_mean": 1.0750709309520656,
+      "rmse_std": 0.008417316936043457,
+      "rmse_best": 1.0663745581979567,
+      "pearson_r_mean": 0.6784397329365687
+    },
+    {
+      "name": "medium",
+      "rmse_mean": 1.0383406015868941,
+      "rmse_std": 0.011791087372168331,
+      "rmse_best": 1.0313952372609838,
+      "pearson_r_mean": 0.7082003357044221
+    },
+    {
+      "name": "deep",
+      "rmse_mean": 1.0436918317382384,
+      "rmse_std": 0.022946811496954274,
+      "rmse_best": 1.023175096724321,
+      "pearson_r_mean": 0.7015249269352933
+    },
+    {
+      "name": "deep_hidrop",
+      "rmse_mean": 1.0322087211972715,
+      "rmse_std": 0.0162604126886904,
+      "rmse_best": 1.0135355069377427,
+      "pearson_r_mean": 0.6951554107440648
+    },
+    {
+      "name": "deep_lowlr",
+      "rmse_mean": 1.0709172436377548,
+      "rmse_std": 0.012662166366273164,
+      "rmse_best": 1.0632051484106027,
+      "pearson_r_mean": 0.6873267643431408
+    }
+  ]
+}
