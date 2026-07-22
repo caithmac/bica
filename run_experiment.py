@@ -18,8 +18,6 @@ model, and calls log_result() at the end.
 """
 
 import os
-
-# from interpret_bica_per_compound import FEAT_CACHE
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"   # suppress libiomp5md.dll conflict warning
 
 import argparse
@@ -30,7 +28,7 @@ import torch.nn as nn
 
 # ── Harness imports ───────────────────────────────────────────────────────────
 from harness.config import SPLIT_DIR, CACHE_DIR, BATCH_SIZE, LEARNING_RATE, SPLIT_SEED
-from harness.data import get_splits_for_seed, get_leakypdb_splits, get_cold_target_splits, get_cold_drug_splits
+from harness.data import get_splits_for_seed, get_leakypdb_splits
 from harness.metrics import compute_metrics, format_metrics
 from harness.diary import log_result, print_leaderboard, save_predictions
 from harness.trainer import train_sklearn, train_torch, count_parameters
@@ -41,30 +39,41 @@ from rdkit import RDLogger
 # Disable all logs from the rdApp (warnings, info, etc.)
 RDLogger.DisableLog('rdApp.*')
 
-# ── Active dataset/seed — set by CLI args before any run() call ───────────────
-_ACTIVE_DATASET = "bindingdb"   # "bindingdb" | "leakypdb" | "bindingdb_cold_target" | "bindingdb_cold_drug"
+# ── Active dataset/seed/split — set by CLI args before any run() call ──────────
+_ACTIVE_DATASET = "bindingdb"   # "bindingdb" | "leakypdb"
 _ACTIVE_SEED    = SPLIT_SEED    # default 42
+_ACTIVE_SPLIT   = "scaffold"    # "scaffold" | "random"
 
 
 def _get_splits():
     """Return (train_df, val_df, test_df) for the currently active dataset/seed."""
     if _ACTIVE_DATASET == "leakypdb":
         return get_leakypdb_splits()
-    if _ACTIVE_DATASET == "bindingdb_cold_target":
-        return get_cold_target_splits(_ACTIVE_SEED)
-    if _ACTIVE_DATASET == "bindingdb_cold_drug":
-        return get_cold_drug_splits(_ACTIVE_SEED)
-    return get_splits_for_seed(_ACTIVE_SEED)
+    elif _ACTIVE_SPLIT == "random":
+        return _random_split(_ACTIVE_SEED)
+    else:
+        return get_splits_for_seed(_ACTIVE_SEED)
+
+
+def _random_split(seed):
+    """Random 70/10/20 split using sklearn.train_test_split."""
+    from sklearn.model_selection import train_test_split
+    from harness.data import load_raw
+    df = load_raw()
+    idx = np.arange(len(df))
+    train_idx, temp_idx = train_test_split(idx, test_size=0.30, random_state=seed)
+    val_idx, test_idx = train_test_split(temp_idx, test_size=2/3, random_state=seed)
+    return (df.iloc[train_idx].reset_index(drop=True),
+            df.iloc[val_idx].reset_index(drop=True),
+            df.iloc[test_idx].reset_index(drop=True))
 
 
 def _split_tag() -> str:
     """Short string used in experiment_id and split_type field."""
     if _ACTIVE_DATASET == "leakypdb":
         return "leakypdb_cl1cl2"
-    if _ACTIVE_DATASET == "bindingdb_cold_target":
-        return f"cold_target_seed{_ACTIVE_SEED}"
-    if _ACTIVE_DATASET == "bindingdb_cold_drug":
-        return f"cold_drug_seed{_ACTIVE_SEED}"
+    if _ACTIVE_SPLIT == "random":
+        return f"random_70_10_20_seed{_ACTIVE_SEED}"
     return f"scaffold_bemis_murcko_seed{_ACTIVE_SEED}"
 
 
@@ -72,10 +81,6 @@ def _exp_id(base_name: str) -> str:
     """Append dataset/seed suffix to experiment_id when not default."""
     if _ACTIVE_DATASET == "leakypdb":
         return f"{base_name}__leakypdb"
-    if _ACTIVE_DATASET == "bindingdb_cold_target":
-        return f"{base_name}__cold_target"
-    if _ACTIVE_DATASET == "bindingdb_cold_drug":
-        return f"{base_name}__cold_drug"
     if _ACTIVE_SEED != SPLIT_SEED:
         return f"{base_name}__seed{_ACTIVE_SEED}"
     return base_name
@@ -85,10 +90,6 @@ def _feat_cache_prefix() -> str:
     """Prefix for feature cache files, so different datasets don't collide."""
     if _ACTIVE_DATASET == "leakypdb":
         return "leakypdb_"
-    if _ACTIVE_DATASET == "bindingdb_cold_target":
-        return "cold_target_"
-    if _ACTIVE_DATASET == "bindingdb_cold_drug":
-        return "cold_drug_"
     if _ACTIVE_SEED != SPLIT_SEED:
         return f"s{_ACTIVE_SEED}_"
     return ""
@@ -140,6 +141,16 @@ register("rf_ecfp4_dipeptide",
     model_family="tree",
     ligand_repr="ecfp4_1024", protein_repr="dipeptide_400", fusion="concat",
 )
+register("rf_ecfp4_esm2_8M",
+    group="trees",
+    model_family="tree",
+    ligand_repr="ecfp4_1024", protein_repr="esm2_8M_320", fusion="concat",
+)
+register("rf_ecfp4_esm2_35M",
+    group="trees",
+    model_family="tree",
+    ligand_repr="ecfp4_1024", protein_repr="esm2_35M_480", fusion="concat",
+)
 register("xgb_ecfp4_aac",
     group="trees",
     model_family="tree",
@@ -156,31 +167,56 @@ register("lgbm_ecfp4_aac",
     ligand_repr="ecfp4_1024", protein_repr="aac_20", fusion="concat",
 )
 
+# ── Group: gp (Gaussian Processes — reviewer-requested baseline) ─────────
 
-
-register("bica_v2_hybrid_nature",
-    group="final_candidates",
-    model_family="hybrid_bica_xgb",  # Use the name the router expects
-    ligand_repr="chemberta_tokens",
-    protein_repr="esm2_35M_perresidue", # ADD THIS LINE to fix the KeyError
-    chemberta_model="DeepChem/ChemBERTa-77M-MTR",
-    esm2_size="35M",
-    warmup_epochs=25, 
-    hidden_dim=256,
-    num_layers=3,
+register("gp_ecfp4_tanimoto",
+    group="gp",
+    model_family="gp",
+    ligand_repr="ecfp4_1024", protein_repr="none", fusion="ligand_only",
+    gp_kernel="tanimoto",
+    notes="Reviewer: GP + ECFP4 + Tanimoto kernel — missing virtual screening baseline",
+)
+register("gp_ecfp4_rbf",
+    group="gp",
+    model_family="gp",
+    ligand_repr="ecfp4_1024", protein_repr="none", fusion="ligand_only",
+    gp_kernel="rbf",
+)
+register("gp_ecfp4_matern",
+    group="gp",
+    model_family="gp",
+    ligand_repr="ecfp4_1024", protein_repr="none", fusion="ligand_only",
+    gp_kernel="matern",
+)
+register("gp_ecfp4_rq",
+    group="gp",
+    model_family="gp",
+    ligand_repr="ecfp4_1024", protein_repr="none", fusion="ligand_only",
+    gp_kernel="rq",
+)
+register("gp_ecfp4_aac",
+    group="gp",
+    model_family="gp",
+    ligand_repr="ecfp4_1024", protein_repr="aac_20", fusion="concat",
+    gp_kernel="rbf",
+    notes="Reviewer: GP + ECFP4+AAC + RBF kernel",
 )
 
-register("bica_v2_hybrid_rf_test",
-    group="final_candidates",
-    model_family="hybrid_bica_rf",
-    ligand_repr="chemberta_tokens",
-    protein_repr="esm2_35M_perresidue",
-    chemberta_model="DeepChem/ChemBERTa-77M-MTR",
-    esm2_size="35M",
-    warmup_epochs=20, 
-    hidden_dim=256,
-    num_layers=3,
+register("gp_ecfp4_esm2_8M",
+    group="gp",
+    model_family="gp",
+    ligand_repr="ecfp4_1024", protein_repr="esm2_8M_320", fusion="concat",
+    gp_kernel="rbf",
+    notes="Reviewer: GP + ECFP4 + ESM-2 8M frozen — tests if rich protein features help GP",
 )
+register("gp_ecfp4_esm2_35M",
+    group="gp",
+    model_family="gp",
+    ligand_repr="ecfp4_1024", protein_repr="esm2_35M_480", fusion="concat",
+    gp_kernel="rbf",
+    notes="Reviewer: GP + ECFP4 + ESM-2 35M frozen",
+)
+
 # ── Group: mlp ────────────────────────────────────────────────────────────────
 
 register("mlp_shallow_ecfp4_aac",
@@ -739,7 +775,7 @@ register("bica_v2_l2p",
 )
 register("concat_baseline",
     group="bica_v2",
-    model_family="concat_baseline",
+    model_family="bica_v2",
     variant="concat_baseline",
     esm2_size="35M",
     max_atoms=100,
@@ -777,7 +813,7 @@ register("bica_v2_chemberta77M_tokens",
     max_prot_len=512,
     hidden_dim=256,
     num_heads=8,
-    num_layers=3,
+    num_layers=2,
     dropout=0.3,
     drop_path=0.1,
     peak_lr=1e-4,
@@ -1111,7 +1147,7 @@ register("transformer_seq_smiles_bpe_1000_protein_char",
 
 def build_features(cfg: dict, train_df, val_df, test_df):
     """Build and return (X_train, X_val, X_test, y_train, y_val, y_test)."""
-    from harness.config import LABEL_COL, SMILES_COL, PROTEIN_COL
+    from harness.config import LABEL_COL, SMILES_COL, PROTEIN_COL, TARGET_ID_COL
     from pathlib import Path
 
     FEAT_CACHE = Path("cache/features")
@@ -1135,6 +1171,11 @@ def build_features(cfg: dict, train_df, val_df, test_df):
         return _get_or_compute(f"{tag}_{part}", lambda: _compute_lig(smiles, lig_repr), part)
 
     def prot_feat(df, part):
+        if prot_repr.startswith("target_binary"):
+            # Use Target_ID column instead of protein sequence
+            tids = df[TARGET_ID_COL].tolist()
+            tag = f"prot_{prot_repr}"
+            return _get_or_compute(f"{tag}_{part}", lambda: _compute_prot(tids, prot_repr), part)
         seqs = df[PROTEIN_COL].tolist()
         tag = f"prot_{prot_repr}"
         return _get_or_compute(f"{tag}_{part}", lambda: _compute_prot(seqs, prot_repr), part)
@@ -1144,14 +1185,22 @@ def build_features(cfg: dict, train_df, val_df, test_df):
     L_val   = lig_feat(val_df,   "val")
     L_test  = lig_feat(test_df,  "test")
 
-    print(f"[features] Computing protein features: {prot_repr}")
-    P_train = prot_feat(train_df, "train")
-    P_val   = prot_feat(val_df,   "val")
-    P_test  = prot_feat(test_df,  "test")
-
-    X_train = F.concat(L_train, P_train)
-    X_val   = F.concat(L_val,   P_val)
-    X_test  = F.concat(L_test,  P_test)
+    if prot_repr == "none":
+        # ponytail: ligand-only features — no protein
+        X_train = L_train
+        X_val   = L_val
+        X_test  = L_test
+        P_train = np.zeros((len(train_df), 0))
+        P_val   = np.zeros((len(val_df), 0))
+        P_test  = np.zeros((len(test_df), 0))
+    else:
+        print(f"[features] Computing protein features: {prot_repr}")
+        P_train = prot_feat(train_df, "train")
+        P_val   = prot_feat(val_df,   "val")
+        P_test  = prot_feat(test_df,  "test")
+        X_train = F.concat(L_train, P_train)
+        X_val   = F.concat(L_val,   P_val)
+        X_test  = F.concat(L_test,  P_test)
 
     y_train = train_df[LABEL_COL].values.astype(np.float32)
     y_val   = val_df[LABEL_COL].values.astype(np.float32)
@@ -1215,6 +1264,11 @@ def _compute_prot(seqs, repr_name):
         return F.amino_acid_composition(seqs)
     elif repr_name == "esmc_300M":
         return F.esmc_embeddings(seqs, model_name="esmc_300m")
+    elif repr_name.startswith("target_binary"):
+        # Parse n_bits from repr_name: "target_binary_7" → 7 bits
+        parts = repr_name.split("_")
+        n_bits = int(parts[2]) if len(parts) >= 3 and parts[2].isdigit() else None
+        return F.target_binary(seqs, n_bits=n_bits)
     else:
         raise ValueError(f"Unknown protein repr: {repr_name}")
 
@@ -1238,6 +1292,15 @@ def build_sklearn_model(cfg: dict, exp_name: str):
         return M.xgboost_model()
     elif name.startswith("lgbm"):
         return M.lightgbm_model()
+    elif name.startswith("gp"):
+        kernel = cfg.get("gp_kernel", "rbf")
+        builders = {
+            "tanimoto": M.gp_tanimoto,
+            "rbf": M.gp_rbf,
+            "matern": M.gp_matern,
+            "rq": M.gp_rq,
+        }
+        return builders[kernel]()
     else:
         raise ValueError(f"Cannot infer sklearn model from name: {name}")
 
@@ -1388,7 +1451,7 @@ def run_distmat(exp_name: str):
         else:
             patience_ctr += 1
 
-        if epoch % 10 == 0:
+        if epoch == 1 or epoch % 5 == 0:
             print(f"  epoch {epoch}  val_rmse={val_m['rmse']:.4f}  patience={patience_ctr}")
         if patience_ctr >= PATIENCE:
             print(f"  Early stop at epoch {epoch}")
@@ -1664,7 +1727,7 @@ def run_bica(exp_name: str):
         else:
             patience_ctr += 1
 
-        if epoch % 10 == 0:
+        if epoch == 1 or epoch % 5 == 0:
             print(f"  epoch {epoch}  val_rmse={val_m['rmse']:.4f}  patience={patience_ctr}")
         if patience_ctr >= PATIENCE:
             print(f"  Early stop at epoch {epoch}")
@@ -2006,7 +2069,7 @@ def run_bica_v2(exp_name: str):
     from harness.config import LABEL_COL, SMILES_COL, PROTEIN_COL, BATCH_SIZE, LEARNING_RATE
     from harness.trainer import _get_device, count_parameters
     from harness.config import MAX_EPOCHS, PATIENCE
-    from models.bica_v2_1 import build_bica_v2
+    from models.bica_v2 import build_bica_v2
     from harness.featurizers import (esm2_per_residue_padded, mol_atom_features_padded,
                                      chemberta_per_token_padded)
     import torch
@@ -2337,475 +2400,6 @@ def run_bica_v2(exp_name: str):
         notes           = cfg.get("notes", ""),
     )
 
-def run_bica_v2_hybrid_pretrained(exp_name: str):
-    """
-    Nature-Grade Hybrid Runner:
-    Phase 1: Pre-train BiCA v2 with MLP head to tune attention heads.
-    Phase 2: Use tuned attention features to train an XGBoost regressor.
-    """
-    import torch
-    import torch.nn as nn
-    from torch.utils.data import Dataset, DataLoader
-    from pathlib import Path
-    import time
-    import numpy as np
-    
-    from harness.config import (LABEL_COL, SMILES_COL, PROTEIN_COL, 
-                                BATCH_SIZE, LEARNING_RATE, MAX_EPOCHS, PATIENCE)
-    from harness.trainer import _get_device, count_parameters
-    from models.bica_v2_1 import build_bica_v2
-    from harness.featurizers import (esm2_per_residue_padded, chemberta_per_token_padded, mol_atom_features_padded)
-    from models.sklearn_models import xgboost_model
-    from harness.metrics import compute_metrics
-    from harness.diary import log_result, save_predictions
-
-    cfg = EXPERIMENTS[exp_name]
-    print(f"\n{'='*60}\n  Pre-trained Hybrid : {exp_name}\n{'='*60}")
-
-    train_df, val_df, test_df = _get_splits()
-    FEAT_CACHE = Path("cache/features")
-    FEAT_CACHE.mkdir(parents=True, exist_ok=True)
-    pfx = _feat_cache_prefix()
-    device = _get_device()
-
-    prot_model_size = cfg.get("esm2_size", "35M")
-    max_atoms       = cfg.get("max_atoms",  100)
-    max_prot_len    = cfg.get("max_prot_len", 512)
-
-    # ── 1. Load/Compute Features ──────────────────────────────────────────
-    def _load_prot(emb_path, mask_path, seqs, split_name):
-        if emb_path.exists() and mask_path.exists():
-            return torch.load(emb_path).float(), torch.load(mask_path)
-        emb, mask = esm2_per_residue_padded(seqs, model_size=prot_model_size, max_len=max_prot_len)
-        torch.save(emb.half(), emb_path); torch.save(mask, mask_path)
-        return emb, mask
-
-    prot_tag = f"prot_esm2_{prot_model_size}_L{max_prot_len}"
-    P_train, Pm_train = _load_prot(FEAT_CACHE/f"{pfx}{prot_tag}_seqemb_tr.pt", FEAT_CACHE/f"{pfx}{prot_tag}_seqmask_tr.pt", train_df[PROTEIN_COL].tolist(), "train")
-    P_val, Pm_val     = _load_prot(FEAT_CACHE/f"{pfx}{prot_tag}_seqemb_vl.pt", FEAT_CACHE/f"{pfx}{prot_tag}_seqmask_vl.pt", val_df[PROTEIN_COL].tolist(), "val")
-    P_test, Pm_test   = _load_prot(FEAT_CACHE/f"{pfx}{prot_tag}_seqemb_te.pt", FEAT_CACHE/f"{pfx}{prot_tag}_seqmask_te.pt", test_df[PROTEIN_COL].tolist(), "test")
-
-    lig_repr = cfg.get("ligand_repr", "chemberta_tokens")
-    cb_model_name = cfg.get("chemberta_model", "seyonec/ChemBERTa-zinc-base-v1")
-    cb_tag = cb_model_name.split("/")[-1]
-
-    def _load_lig(emb_path, mask_path, smiles):
-        if emb_path.exists() and mask_path.exists():
-            return torch.load(emb_path), torch.load(mask_path)
-        if lig_repr == "chemberta_tokens":
-            emb, mask = chemberta_per_token_padded(smiles, model_name=cb_model_name)
-        else:
-            emb, mask = mol_atom_features_padded(smiles, max_atoms=max_atoms)
-        torch.save(emb, emb_path); torch.save(mask, mask_path)
-        return emb, mask
-
-    L_train, Lm_train = _load_lig(FEAT_CACHE/f"{pfx}lig_seq_{cb_tag}_tr.pt", FEAT_CACHE/f"{pfx}lig_seq_{cb_tag}_m_tr.pt", train_df[SMILES_COL].tolist())
-    L_val, Lm_val     = _load_lig(FEAT_CACHE/f"{pfx}lig_seq_{cb_tag}_vl.pt", FEAT_CACHE/f"{pfx}lig_seq_{cb_tag}_m_vl.pt", val_df[SMILES_COL].tolist())
-    L_test, Lm_test   = _load_lig(FEAT_CACHE/f"{pfx}lig_seq_{cb_tag}_te.pt", FEAT_CACHE/f"{pfx}lig_seq_{cb_tag}_m_te.pt", test_df[SMILES_COL].tolist())
-
-    y_train_vec = train_df[LABEL_COL].values.astype(np.float32)
-    y_val_vec   = val_df[LABEL_COL].values.astype(np.float32)
-    y_test_vec  = test_df[LABEL_COL].values.astype(np.float32)
-
-    # ── 2. Phase 1: BiCA Pre-training (The Warmup) ─────────────────────────
-    model = build_bica_v2(
-        protein_dim=P_train.shape[-1], 
-        ligand_dim=L_train.shape[-1],
-        variant="bica_v2", 
-        hidden_dim=cfg.get("hidden_dim", 256), 
-        num_layers=cfg.get("num_layers", 2),
-        dropout=0.2
-    ).to(device)
-
-    class SeqAffinityDataset(Dataset):
-        def __init__(self, L, Lm, P, Pm, y): self.L, self.Lm, self.P, self.Pm, self.y = L, Lm, P, Pm, y
-        def __len__(self): return len(self.y)
-        def __getitem__(self, i): return self.L[i], self.Lm[i], self.P[i], self.Pm[i], self.y[i]
-
-    warmup_ckpt = Path(f"cache/models/warmup_{exp_name}.pt")
-    if warmup_ckpt.exists():
-        print(f"[Phase 1] Loading existing warmup checkpoint...")
-        model.load_state_dict(torch.load(warmup_ckpt))
-    else:
-        print(f"[Phase 1] Pre-training BiCA for {cfg.get('warmup_epochs', 20)} epochs...")
-        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
-        criterion = nn.MSELoss()
-        train_loader = DataLoader(SeqAffinityDataset(L_train, Lm_train, P_train, Pm_train, y_train_vec), batch_size=32, shuffle=True)
-
-        model.train()
-        for epoch in range(cfg.get('warmup_epochs', 20)):
-            for Lb, Lmb, Pb, Pmb, yb in train_loader:
-                Lb, Lmb, Pb, Pmb, yb = Lb.to(device), Lmb.to(device), Pb.to(device), Pmb.to(device), yb.to(device)
-                optimizer.zero_grad()
-                pred = model(Pb, Lb, Pmb, Lmb).squeeze(-1)
-                loss = criterion(pred, yb)
-                loss.backward()
-                optimizer.step()
-        torch.save(model.state_dict(), warmup_ckpt)
-
-    # ── 3. Phase 2: Feature Extraction ─────────────────────────────────────
-    model.eval()
-    def extract_z(L, Lm, P, Pm):
-        loader = DataLoader(SeqAffinityDataset(L, Lm, P, Pm, np.zeros(len(L))), batch_size=32, shuffle=False)
-        all_z = []
-        with torch.no_grad():
-            for Lb, Lmb, Pb, Pmb, _ in loader:
-                z = model.encode(Pb.to(device), Lb.to(device), Pmb.to(device), Lmb.to(device))
-                all_z.append(z.cpu().numpy())
-        return np.concatenate(all_z, axis=0)
-
-    print("[Phase 2] Extracting tuned attention features...")
-    Z_train, Z_val, Z_test = extract_z(L_train, Lm_train, P_train, Pm_train), extract_z(L_val, Lm_val, P_val, Pm_val), extract_z(L_test, Lm_test, P_test, Pm_test)
-
-    # ── 4. Phase 3: XGBoost Training ────────────────────────────────────────
- # ── 4. Phase 3: XGBoost Training ────────────────────────────────────────
-    print(f"[Phase 3] Training XGBoost on {Z_train.shape[1]}-dim features...")
-    
-    # Import XGBRegressor directly to ensure we use the modern API
-    from xgboost import XGBRegressor
-
-    xgb = XGBRegressor(
-        n_estimators=1500,
-        max_depth=16,
-        learning_rate=0.015,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        tree_method="hist",
-        device="cuda",             # Use "cpu" if you don't have a GPU for XGBoost
-        early_stopping_rounds=50,  # MOVED FROM fit() TO HERE
-        random_state=42
-    )
-    
-    t0 = time.time()
-    # Remove early_stopping_rounds from the fit call
-    xgb.fit(
-        Z_train, y_train_vec, 
-        eval_set=[(Z_val, y_val_vec)], 
-        verbose=100
-    )
-    train_time = time.time() - t0
-
-    # ── 5. Evaluate and Log ──────────────────────────────────────────────────
-    test_pred = xgb.predict(Z_test)
-    val_m, test_m = compute_metrics(y_val_vec, xgb.predict(Z_val)), compute_metrics(y_test_vec, test_pred)
-    save_predictions(_exp_id(exp_name), y_test_vec, test_pred)
-
-    log_result(
-        experiment_id= _exp_id(exp_name), model_name= "BiCA_v2_Hybrid_XGB", model_family= "hybrid",
-        ligand_repr= cfg["ligand_repr"], protein_repr= f"esm2_{prot_model_size}_perresidue",
-        fusion_strategy= "attention_warmup_then_xgboost", n_params= count_parameters(model),
-        epochs_trained= cfg.get('warmup_epochs', 20), batch_size= 32, learning_rate= 0.015,
-        split_type= _split_tag(), n_train= len(y_train_vec), n_val= len(y_val_vec), n_test= len(y_test_vec),
-        val_metrics= val_m, test_metrics= test_m, train_time_sec= train_time,
-        notes= f"Hybrid: Attention pre-trained for {cfg.get('warmup_epochs', 20)} epochs before XGBoost head."
-    )
-
-
-
-def run_bica_v2_hybrid_rf(exp_name: str):
-    """
-    Nature-Grade Hybrid Runner (Random Forest Variant):
-    Phase 1: Pre-train BiCA v2 with MLP head to tune attention heads.
-    Phase 2: Use tuned attention features to extract 512-dim 'Binding Context' vectors.
-    Phase 3: Train a Random Forest Regressor on these deep embeddings.
-    """
-    import torch
-    import torch.nn as nn
-    from torch.utils.data import Dataset, DataLoader
-    from pathlib import Path
-    import time
-    import numpy as np
-    from sklearn.ensemble import RandomForestRegressor
-    
-    from harness.config import (LABEL_COL, SMILES_COL, PROTEIN_COL, 
-                                BATCH_SIZE, LEARNING_RATE, MAX_EPOCHS, PATIENCE)
-    from harness.trainer import _get_device, count_parameters
-    from models.bica_v2_1 import build_bica_v2
-    from harness.featurizers import (esm2_per_residue_padded, chemberta_per_token_padded, mol_atom_features_padded)
-    from harness.metrics import compute_metrics
-    from harness.diary import log_result, save_predictions
-
-    cfg = EXPERIMENTS[exp_name]
-    print(f"\n{'='*60}\n  Pre-trained Hybrid RF : {exp_name}\n{'='*60}")
-
-    train_df, val_df, test_df = _get_splits()
-    FEAT_CACHE = Path("cache/features")
-    FEAT_CACHE.mkdir(parents=True, exist_ok=True)
-    pfx = _feat_cache_prefix()
-    device = _get_device()
-
-    prot_model_size = cfg.get("esm2_size", "35M")
-    max_atoms       = cfg.get("max_atoms",  100)
-    max_prot_len    = cfg.get("max_prot_len", 512)
-
-    # ── 1. Featurization (ESM-2 and ChemBERTa Sequences) ──────────────────
-    def _load_prot(emb_path, mask_path, seqs, split_name):
-        if emb_path.exists() and mask_path.exists():
-            return torch.load(emb_path).float(), torch.load(mask_path)
-        emb, mask = esm2_per_residue_padded(seqs, model_size=prot_model_size, max_len=max_prot_len)
-        torch.save(emb.half(), emb_path); torch.save(mask, mask_path)
-        return emb, mask
-
-    prot_tag = f"prot_esm2_{prot_model_size}_L{max_prot_len}"
-    P_train, Pm_train = _load_prot(FEAT_CACHE/f"{pfx}{prot_tag}_seqemb_tr.pt", FEAT_CACHE/f"{pfx}{prot_tag}_seqmask_tr.pt", train_df[PROTEIN_COL].tolist(), "train")
-    P_val, Pm_val     = _load_prot(FEAT_CACHE/f"{pfx}{prot_tag}_seqemb_vl.pt", FEAT_CACHE/f"{pfx}{prot_tag}_seqmask_vl.pt", val_df[PROTEIN_COL].tolist(), "val")
-    P_test, Pm_test   = _load_prot(FEAT_CACHE/f"{pfx}{prot_tag}_seqemb_te.pt", FEAT_CACHE/f"{pfx}{prot_tag}_seqmask_te.pt", test_df[PROTEIN_COL].tolist(), "test")
-
-    lig_repr = cfg.get("ligand_repr", "chemberta_tokens")
-    cb_model_name = cfg.get("chemberta_model", "seyonec/ChemBERTa-zinc-base-v1")
-    cb_tag = cb_model_name.split("/")[-1]
-
-    def _load_lig(emb_path, mask_path, smiles):
-        if emb_path.exists() and mask_path.exists():
-            return torch.load(emb_path), torch.load(mask_path)
-        if lig_repr == "chemberta_tokens":
-            emb, mask = chemberta_per_token_padded(smiles, model_name=cb_model_name)
-        else:
-            emb, mask = mol_atom_features_padded(smiles, max_atoms=max_atoms)
-        torch.save(emb, emb_path); torch.save(mask, mask_path)
-        return emb, mask
-
-    L_train, Lm_train = _load_lig(FEAT_CACHE/f"{pfx}lig_seq_{cb_tag}_tr.pt", FEAT_CACHE/f"{pfx}lig_seq_{cb_tag}_m_tr.pt", train_df[SMILES_COL].tolist())
-    L_val, Lm_val     = _load_lig(FEAT_CACHE/f"{pfx}lig_seq_{cb_tag}_vl.pt", FEAT_CACHE/f"{pfx}lig_seq_{cb_tag}_m_vl.pt", val_df[SMILES_COL].tolist())
-    L_test, Lm_test   = _load_lig(FEAT_CACHE/f"{pfx}lig_seq_{cb_tag}_te.pt", FEAT_CACHE/f"{pfx}lig_seq_{cb_tag}_m_te.pt", test_df[SMILES_COL].tolist())
-
-    y_train_vec = train_df[LABEL_COL].values.astype(np.float32)
-    y_val_vec   = val_df[LABEL_COL].values.astype(np.float32)
-    y_test_vec  = test_df[LABEL_COL].values.astype(np.float32)
-
-    # ── 2. Phase 1: BiCA Warmup (Tuning Attention) ───────────────────────
-    model = build_bica_v2(
-        protein_dim=P_train.shape[-1], 
-        ligand_dim=L_train.shape[-1],
-        variant="bica_v2", 
-        hidden_dim=cfg.get("hidden_dim", 256), 
-        num_layers=cfg.get("num_layers", 2),
-        dropout=0.2
-    ).to(device)
-
-    class SeqAffinityDataset(Dataset):
-        def __init__(self, L, Lm, P, Pm, y): self.L, self.Lm, self.P, self.Pm, self.y = L, Lm, P, Pm, y
-        def __len__(self): return len(self.y)
-        def __getitem__(self, i): return self.L[i], self.Lm[i], self.P[i], self.Pm[i], self.y[i]
-
-    # Re-use warmup checkpoint from XGB variant if available to save hours of GPU time
-    warmup_ckpt = Path(f"cache/models/warmup_{exp_name}.pt")
-    if warmup_ckpt.exists():
-        print(f"[Phase 1] Loading existing attention warmup checkpoint...")
-        model.load_state_dict(torch.load(warmup_ckpt))
-    else:
-        print(f"[Phase 1] Pre-training BiCA for {cfg.get('warmup_epochs', 20)} epochs to tune attention...")
-        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
-        criterion = nn.MSELoss()
-        train_loader = DataLoader(SeqAffinityDataset(L_train, Lm_train, P_train, Pm_train, y_train_vec), batch_size=32, shuffle=True)
-
-        model.train()
-        for epoch in range(cfg.get('warmup_epochs', 20)):
-            for Lb, Lmb, Pb, Pmb, yb in train_loader:
-                Lb, Lmb, Pb, Pmb, yb = Lb.to(device), Lmb.to(device), Pb.to(device), Pmb.to(device), yb.to(device)
-                optimizer.zero_grad()
-                pred = model(Pb, Lb, Pmb, Lmb).squeeze(-1)
-                loss = criterion(pred, yb)
-                loss.backward()
-                optimizer.step()
-            print(f"  Warmup Epoch {epoch+1}/{cfg.get('warmup_epochs', 20)} complete.")
-        torch.save(model.state_dict(), warmup_ckpt)
-
-    # ── 3. Phase 2: Feature Extraction ─────────────────────────────────────
-    model.eval()
-    def extract_z(L, Lm, P, Pm):
-        loader = DataLoader(SeqAffinityDataset(L, Lm, P, Pm, np.zeros(len(L))), batch_size=32, shuffle=False)
-        all_z = []
-        with torch.no_grad():
-            for Lb, Lmb, Pb, Pmb, _ in loader:
-                # Get the latent representation from the BiCA model
-                z = model.encode(Pb.to(device), Lb.to(device), Pmb.to(device), Lmb.to(device))
-                all_z.append(z.cpu().numpy())
-        return np.concatenate(all_z, axis=0)
-
-    print("[Phase 2] Extracting deep attention embeddings for Random Forest...")
-    Z_train = extract_z(L_train, Lm_train, P_train, Pm_train)
-    Z_val   = extract_z(L_val, Lm_val, P_val, Pm_val)
-    Z_test  = extract_z(L_test, Lm_test, P_test, Pm_test)
-
-    # ── 4. Phase 3: Random Forest Training ──────────────────────────────────
-    print(f"[Phase 3] Training Random Forest on {Z_train.shape[1]}-dim features...")
-    # Use all CPU cores (n_jobs=-1)
-    rf = RandomForestRegressor(n_estimators=500, max_depth=None, n_jobs=-1, random_state=42)
-    
-    t0 = time.time()
-    rf.fit(Z_train, y_train_vec)
-    train_time = time.time() - t0
-
-    # ── 5. Evaluate and Log ──────────────────────────────────────────────────
-    test_pred = rf.predict(Z_test)
-    val_m     = compute_metrics(y_val_vec, rf.predict(Z_val))
-    test_m    = compute_metrics(y_test_vec, test_pred)
-    
-    save_predictions(_exp_id(exp_name), y_test_vec, test_pred)
-
-    log_result(
-        experiment_id= _exp_id(exp_name),
-        model_name= "BiCA_v2_Hybrid_RF",
-        model_family= "hybrid",
-        ligand_repr= cfg["ligand_repr"],
-        protein_repr= f"esm2_{prot_model_size}_perresidue",
-        fusion_strategy= "attention_warmup_then_rf",
-        n_params= count_parameters(model),
-        epochs_trained= cfg.get('warmup_epochs', 20),
-        batch_size= "N/A",
-        learning_rate= "N/A",
-        split_type= _split_tag(),
-        n_train= len(y_train_vec), n_val= len(y_val_vec), n_test= len(y_test_vec),
-        val_metrics= val_m,
-        test_metrics= test_m,
-        train_time_sec= train_time,
-        notes= f"Hybrid: Attention pre-tuned for {cfg.get('warmup_epochs', 20)} epochs, then Random Forest head."
-    )
-
-def run_bica_v2_xgb(exp_name: str):
-    """
-    Hybrid BiCA v2 + XGBoost Runner.
-    Extracts deep relational embeddings from Cross-Attention layers, 
-    then performs regression using XGBoost.
-    """
-    import torch
-    import torch.nn as nn
-    from torch.utils.data import Dataset, DataLoader
-    from pathlib import Path
-    import time
-    import numpy as np
-    
-    from harness.config import (LABEL_COL, SMILES_COL, PROTEIN_COL, 
-                                BATCH_SIZE, LEARNING_RATE, MAX_EPOCHS)
-    from harness.trainer import _get_device, count_parameters
-    from models.bica_v2_1 import build_bica_v2
-    from harness.featurizers import (esm2_per_residue_padded, mol_atom_features_padded,
-                                     chemberta_per_token_padded)
-    from models.sklearn_models import xgboost_model
-
-    cfg = EXPERIMENTS[exp_name]
-    print(f"\n{'='*60}\n  Hybrid Experiment : {exp_name} (BiCA v2 + XGBoost)\n{'='*60}")
-
-    train_df, val_df, test_df = _get_splits()
-    FEAT_CACHE = Path("cache/features")
-    FEAT_CACHE.mkdir(parents=True, exist_ok=True)
-    pfx = _feat_cache_prefix()
-
-    prot_model_size = cfg.get("esm2_size", "35M")
-    max_atoms       = cfg.get("max_atoms",  100)
-    max_prot_len    = cfg.get("max_prot_len", 512)
-
-    # ── 1. Featurize Sequences (Same logic as run_bica_v2) ──────────────────
-    def _load_prot(emb_path, mask_path, seqs, split_name):
-        if emb_path.exists() and mask_path.exists():
-            return torch.load(emb_path).float(), torch.load(mask_path)
-        emb, mask = esm2_per_residue_padded(seqs, model_size=prot_model_size, max_len=max_prot_len)
-        torch.save(emb.half(), emb_path); torch.save(mask, mask_path)
-        return emb, mask
-
-    prot_tag = f"prot_esm2_{prot_model_size}_L{max_prot_len}"
-    P_train, Pm_train = _load_prot(FEAT_CACHE/f"{pfx}{prot_tag}_seqemb_tr.pt", FEAT_CACHE/f"{pfx}{prot_tag}_seqmask_tr.pt", train_df[PROTEIN_COL].tolist(), "train")
-    P_val, Pm_val     = _load_prot(FEAT_CACHE/f"{pfx}{prot_tag}_seqemb_vl.pt", FEAT_CACHE/f"{pfx}{prot_tag}_seqmask_vl.pt", val_df[PROTEIN_COL].tolist(), "val")
-    P_test, Pm_test   = _load_prot(FEAT_CACHE/f"{pfx}{prot_tag}_seqemb_te.pt", FEAT_CACHE/f"{pfx}{prot_tag}_seqmask_te.pt", test_df[PROTEIN_COL].tolist(), "test")
-
-    lig_repr = cfg.get("ligand_repr", "chemberta_tokens")
-    cb_model_name = cfg.get("chemberta_model", "seyonec/ChemBERTa-zinc-base-v1")
-    cb_tag = cb_model_name.split("/")[-1]
-
-    def _load_lig(emb_path, mask_path, smiles):
-        if emb_path.exists() and mask_path.exists():
-            return torch.load(emb_path), torch.load(mask_path)
-        emb, mask = chemberta_per_token_padded(smiles, model_name=cb_model_name)
-        torch.save(emb, emb_path); torch.save(mask, mask_path)
-        return emb, mask
-
-    L_train, Lm_train = _load_lig(FEAT_CACHE/f"{pfx}lig_cb_{cb_tag}_tr.pt", FEAT_CACHE/f"{pfx}lig_cb_{cb_tag}_mask_tr.pt", train_df[SMILES_COL].tolist())
-    L_val, Lm_val     = _load_lig(FEAT_CACHE/f"{pfx}lig_cb_{cb_tag}_vl.pt", FEAT_CACHE/f"{pfx}lig_cb_{cb_tag}_mask_vl.pt", val_df[SMILES_COL].tolist())
-    L_test, Lm_test   = _load_lig(FEAT_CACHE/f"{pfx}lig_cb_{cb_tag}_te.pt", FEAT_CACHE/f"{pfx}lig_cb_{cb_tag}_mask_te.pt", test_df[SMILES_COL].tolist())
-
-    # ── 2. Initialize BiCA Encoder ──────────────────────────────────────────
-    device = _get_device()
-    hidden_dim = cfg.get("hidden_dim", 256)
-    model = build_bica_v2(
-        protein_dim=P_train.shape[-1], 
-        ligand_dim=L_train.shape[-1],
-        variant="bica_v2", 
-        hidden_dim=hidden_dim, 
-        num_layers=cfg.get("num_layers", 2)
-    ).to(device)
-
-    # Load weights from your best BiCA v2 run if they exist
-    # This allows XGBoost to use 'pre-trained' cross-attention features
-    ckpt_path = Path(f"cache/models/bica_v2_chemberta77M_tokens.pt")
-    if ckpt_path.exists():
-        print(f"[hybrid] Loading pre-trained encoder weights from {ckpt_path}")
-        model.load_state_dict(torch.load(ckpt_path), strict=False)
-    model.eval()
-
-    # ── 3. Extract Embeddings (Stage 1) ──────────────────────────────────────
-    class SeqDataset(Dataset):
-        def __init__(self, L, Lm, P, Pm): self.L, self.Lm, self.P, self.Pm = L, Lm, P, Pm
-        def __len__(self): return len(self.L)
-        def __getitem__(self, i): return self.L[i], self.Lm[i], self.P[i], self.Pm[i]
-
-    def collate_fn(batch):
-        L, Lm, P, Pm = zip(*batch)
-        return torch.stack(L), torch.stack(Lm), torch.stack(P), torch.stack(Pm)
-
-    def extract_z(L, Lm, P, Pm):
-        loader = DataLoader(SeqDataset(L, Lm, P, Pm), batch_size=32, shuffle=False)
-        all_z = []
-        with torch.no_grad():
-            for Lb, Lmb, Pb, Pmb in loader:
-                # Get the 512-dim fused vector from the BiCA model
-                z = model.encode(Pb.to(device), Lb.to(device), Pmb.to(device), Lmb.to(device))
-                all_z.append(z.cpu().numpy())
-        return np.concatenate(all_z, axis=0)
-
-    print("[hybrid] Extracting Cross-Attention features...")
-    Z_train = extract_z(L_train, Lm_train, P_train, Pm_train)
-    Z_val   = extract_z(L_val, Lm_val, P_val, Pm_val)
-    Z_test  = extract_z(L_test, Lm_test, P_test, Pm_test)
-
-    y_train = train_df[LABEL_COL].values
-    y_val   = val_df[LABEL_COL].values
-    y_test  = test_df[LABEL_COL].values
-
-    # ── 4. Train XGBoost (Stage 2) ───────────────────────────────────────────
-    print(f"[hybrid] Training XGBoost on extracted {Z_train.shape[1]}-dim features...")
-    xgb = xgboost_model(n_estimators=1200, max_depth=7, lr=0.02)
-    
-    t0 = time.time()
-    xgb.fit(Z_train, y_train, eval_set=[(Z_val, y_val)], verbose=100)
-    train_time = time.time() - t0
-
-    # ── 5. Evaluate and Log ──────────────────────────────────────────────────
-    test_pred = xgb.predict(Z_test)
-    val_metrics = compute_metrics(y_val, xgb.predict(Z_val))
-    test_metrics = compute_metrics(y_test, test_pred)
-    
-    save_predictions(_exp_id(exp_name), y_test, test_pred)
-    print(f"[hybrid] Test RMSE: {test_metrics['rmse']:.4f}")
-
-    log_result(
-        experiment_id= _exp_id(exp_name),
-        model_name= "BiCA_v2_XGBoost_Hybrid",
-        model_family= "hybrid",
-        ligand_repr= cfg["ligand_repr"],
-        protein_repr= f"esm2_{prot_model_size}_perresidue",
-        fusion_strategy= "cross_attention_then_xgboost",
-        n_params= count_parameters(model),
-        epochs_trained= 1200,
-        batch_size= "N/A",
-        learning_rate= 0.02,
-        split_type= _split_tag(),
-        n_train= len(y_train), n_val= len(y_val), n_test= len(y_test),
-        val_metrics= val_metrics,
-        test_metrics= test_metrics,
-        train_time_sec= train_time,
-        notes= cfg.get("notes", "Hybrid model using XGBoost on top of Attention embeddings")
-    )
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Run a single experiment
@@ -2825,9 +2419,6 @@ def run(exp_name: str):
     if cfg["model_family"] in ("lstm", "transformer_seq", "mamba"):
         run_seq(exp_name)
         return
-    if cfg["model_family"] == "hybrid_bica_xgb":
-        run_bica_v2_hybrid_pretrained(exp_name)
-        return
     if cfg["model_family"] == "distmat_cnn":
         run_distmat(exp_name)
         return
@@ -2846,15 +2437,11 @@ def run(exp_name: str):
     if cfg["model_family"] == "bica_v2":
         run_bica_v2(exp_name)
         return
-    if cfg["model_family"] == "bica_v2_xgb":
-        run_bica_v2_xgb(exp_name)
+    if cfg["model_family"] == "finetune_mlp":
+        run_finetune_mlp(exp_name)
         return
-    
-    if cfg["model_family"] == "hybrid_bica_xgb":
-        run_bica_v2_hybrid_pretrained(exp_name)
-        return
-    if cfg["model_family"] == "hybrid_bica_rf":
-        run_bica_v2_hybrid_rf(exp_name)
+    if cfg["model_family"] == "finetune_bica_v2":
+        run_finetune_bica_v2(exp_name)
         return
 
     print(f"\n{'='*60}")
@@ -2877,14 +2464,14 @@ def run(exp_name: str):
     n_params    = "N/A"
     epochs_done = "N/A"
 
-    if mf not in ("linear", "tree"):
+    if mf not in ("linear", "tree", "gp"):
         from sklearn.preprocessing import StandardScaler
         scaler = StandardScaler().fit(X_train)
         X_train = scaler.transform(X_train)
         X_val   = scaler.transform(X_val)
         X_test  = scaler.transform(X_test)
         # Scale separate ligand/protein tensors if they exist (for cross‑attention)
-        if 'L_train' in locals():
+        if P_train.shape[1] > 0:
             scaler_lig = StandardScaler().fit(L_train)
             L_train = scaler_lig.transform(L_train)
             L_val   = scaler_lig.transform(L_val)
@@ -2897,7 +2484,7 @@ def run(exp_name: str):
 
 
 
-    if mf in ("linear", "tree"):
+    if mf in ("linear", "tree", "gp"):
         # Sklearn path
         model = build_sklearn_model(cfg, exp_name)
         val_m, test_m, train_time, _, test_pred = train_sklearn(
@@ -2958,7 +2545,7 @@ def run(exp_name: str):
                 best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
             else:
                 patience_ctr += 1
-            if epoch % 10 == 0:
+            if epoch == 1 or epoch % 5 == 0:
                 print(f"  epoch {epoch}  val_rmse={rm['rmse']:.4f}")
             if patience_ctr >= PATIENCE:
                 break
@@ -3114,9 +2701,532 @@ def register_full_grid():
 # Register the full grid (this will add all experiments)
 register_full_grid()
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Fischer target-encoding experiments (replaces AAC with binary Target_ID)
+# ─────────────────────────────────────────────────────────────────────────────
+
+register("rf_ecfp4_target_binary",
+    group="target_encoding",
+    model_family="tree",
+    ligand_repr="ecfp4_1024", protein_repr="target_binary", fusion="concat",
+    notes="Fischer: RF + ECFP4 + binary target ID (replaces AAC). Auto bit-width.",
+)
+register("xgb_ecfp4_target_binary",
+    group="target_encoding",
+    model_family="tree",
+    ligand_repr="ecfp4_1024", protein_repr="target_binary", fusion="concat",
+    notes="Fischer: XGB + ECFP4 + binary target ID (replaces AAC). Auto bit-width.",
+)
+register("rf_ecfp6_target_binary",
+    group="target_encoding",
+    model_family="tree",
+    ligand_repr="ecfp6_1024", protein_repr="target_binary", fusion="concat",
+    notes="Fischer: RF + ECFP6 + binary target ID.",
+)
+register("xgb_chemberta_target_binary",
+    group="target_encoding",
+    model_family="tree",
+    ligand_repr="chemberta_600", protein_repr="target_binary", fusion="concat",
+    notes="Fischer: XGB + ChemBERTa + binary target ID.",
+)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Fine-tuning experiments (reviewer response)
+# ─────────────────────────────────────────────────────────────────────────────
+
+register("mlp_ecfp4_esm2_8M_ft_k3",
+    group="finetune",
+    model_family="finetune_mlp",
+    ligand_repr="ecfp4_1024", protein_repr="esm2_8M_online",
+    fusion="concat", esm2_size="8M", finetune_layers=3,
+    notes="Reviewer: MLP + fine-tuned ESM-2 8M (top 3 layers unfrozen)",
+)
+register("mlp_ecfp4_esm2_8M_ft_k6",
+    group="finetune",
+    model_family="finetune_mlp",
+    ligand_repr="ecfp4_1024", protein_repr="esm2_8M_online",
+    fusion="concat", esm2_size="8M", finetune_layers=6,
+    notes="Reviewer: MLP + fine-tuned ESM-2 8M (all 6 layers unfrozen)",
+)
+register("mlp_ecfp4_esm2_35M_ft_k3",
+    group="finetune",
+    model_family="finetune_mlp",
+    ligand_repr="ecfp4_1024", protein_repr="esm2_35M_online",
+    fusion="concat", esm2_size="35M", finetune_layers=3,
+    notes="Reviewer: MLP + fine-tuned ESM-2 35M (top 3 layers unfrozen)",
+)
+register("bica_v2_cb77M_esm2_35M_ft_k3",
+    group="finetune",
+    model_family="finetune_bica_v2",
+    ligand_repr="chemberta_online_77M", protein_repr="esm2_35M_online",
+    fusion="bidirectional_cross_attn", esm2_size="35M", finetune_layers=3,
+    notes="Reviewer: BiCA v2 + fine-tuned ChemBERTa-77M + ESM-2 35M (top 3 layers)",
+)
+register("bica_v2_cb77M_esm2_35M_ft_k6",
+    group="finetune",
+    model_family="finetune_bica_v2",
+    ligand_repr="chemberta_online_77M", protein_repr="esm2_35M_online",
+    fusion="bidirectional_cross_attn", esm2_size="35M", finetune_layers=6,
+    notes="Reviewer: BiCA v2 + fine-tuned ChemBERTa-77M + ESM-2 35M (top 6 layers)",
+)
+
+# ── Fine-tuning runners ───────────────────────────────────────────────────
+
+def run_finetune_mlp(exp_name: str):
+    """MLP with online fine-tuned ESM-2 encoder.
+
+    ponytail: loads ESM-2 in-graph, freezes bottom, unfreezes top k layers,
+    forward-propagates protein sequences through the encoder every batch.
+    ECFP4 ligand features stay pre-computed (fingerprint, not a neural encoder).
+    """
+    import torch, torch.nn as nn
+    from torch.utils.data import DataLoader, TensorDataset
+    from transformers import EsmModel, AutoTokenizer
+    from harness.trainer import _get_device, count_parameters
+    from harness.config import LABEL_COL, SMILES_COL, PROTEIN_COL
+    from harness.config import BATCH_SIZE, MAX_EPOCHS, PATIENCE, LEARNING_RATE
+    from harness.metrics import compute_metrics, format_metrics
+    from harness.diary import log_result, save_predictions
+    from harness.featurizers import ecfp
+    import time, numpy as np
+
+    cfg = EXPERIMENTS[exp_name]
+    esm_size       = cfg.get("esm2_size", "8M")
+    finetune_k     = cfg.get("finetune_layers", 3)
+    esm_map = {
+        "8M":  ("facebook/esm2_t6_8M_UR50D",   320, 6),
+        "35M": ("facebook/esm2_t12_35M_UR50D", 480, 12),
+    }
+    model_name, esm_dim, total_layers = esm_map[esm_size]
+
+    print(f"\n{'='*60}\n  Experiment: {exp_name}  [MLP + ESM-2 FT k={finetune_k}]\n{'='*60}")
+
+    train_df, val_df, test_df = _get_splits()
+    device = _get_device()
+
+    # ── Ligand: pre-computed ECFP4 ──────────────────────────────────────
+    print("[ft_mlp] Computing ECFP4 ligand features …")
+    L_train = ecfp(train_df[SMILES_COL].tolist(), radius=2, nbits=1024)
+    L_val   = ecfp(val_df[SMILES_COL].tolist(),   radius=2, nbits=1024)
+    L_test  = ecfp(test_df[SMILES_COL].tolist(),  radius=2, nbits=1024)
+
+    # ── Load ESM-2, freeze all, unfreeze top k ──────────────────────────
+    print(f"[ft_mlp] Loading ESM-2 {esm_size} ({total_layers} layers, {esm_dim}d) …")
+    tokenizer = AutoTokenizer.from_pretrained(model_name, local_files_only=True)
+    esm = EsmModel.from_pretrained(model_name, local_files_only=True).to(device)
+
+    # Freeze all parameters
+    for p in esm.parameters():
+        p.requires_grad = False
+
+    # Unfreeze top k transformer layers + final layer norm + pooler
+    if finetune_k > 0:
+        layers = list(esm.encoder.layer)
+        for layer in layers[-finetune_k:]:
+            for p in layer.parameters():
+                p.requires_grad = True
+        for p in esm.encoder.emb_layer_norm_after.parameters():
+            p.requires_grad = True
+        n_trainable = sum(p.numel() for p in esm.parameters() if p.requires_grad)
+        print(f"[ft_mlp] Unfrozen params: {n_trainable:,} / "
+              f"{sum(p.numel() for p in esm.parameters()):,}")
+    else:
+        esm.eval()  # fully frozen
+
+    # ── Tokenize protein sequences ──────────────────────────────────────
+    def tokenize(seqs):
+        return tokenizer(seqs, return_tensors="pt", padding=True,
+                         truncation=True, max_length=512)
+
+    tok_train = tokenize(train_df[PROTEIN_COL].tolist())
+    tok_val   = tokenize(val_df[PROTEIN_COL].tolist())
+    tok_test  = tokenize(test_df[PROTEIN_COL].tolist())
+
+    # ── Build MLP head ──────────────────────────────────────────────────
+    # Input: ECFP4 (1024) + ESM-2 pooled (esm_dim)
+    hidden_dim = 256
+    mlp_head = nn.Sequential(
+        nn.Linear(1024 + esm_dim, hidden_dim),
+        nn.ReLU(),
+        nn.Dropout(0.2),
+        nn.Linear(hidden_dim, hidden_dim // 2),
+        nn.ReLU(),
+        nn.Dropout(0.2),
+        nn.Linear(hidden_dim // 2, 1),
+    ).to(device)
+
+    n_params = count_parameters(mlp_head) + sum(p.numel() for p in esm.parameters() if p.requires_grad)
+
+    # ── Optimizer: separate LR for encoder vs head ──────────────────────
+    encoder_params = [p for p in esm.parameters() if p.requires_grad]
+    optimizer = torch.optim.AdamW([
+        {"params": encoder_params, "lr": LEARNING_RATE * 0.1},  # lower LR for pretrained
+        {"params": mlp_head.parameters(), "lr": LEARNING_RATE},
+    ], weight_decay=1e-4)
+
+    criterion = nn.MSELoss()
+    y_tr = torch.tensor(train_df[LABEL_COL].values, dtype=torch.float32)
+    y_vl = val_df[LABEL_COL].values.astype(np.float32)
+    y_te = test_df[LABEL_COL].values.astype(np.float32)
+
+    L_tr = torch.tensor(L_train, dtype=torch.float32)
+    L_vl = torch.tensor(L_val, dtype=torch.float32).to(device)
+    L_te = torch.tensor(L_test, dtype=torch.float32).to(device)
+
+    # ── Create DataLoader ───────────────────────────────────────────────
+    ds = TensorDataset(
+        tok_train["input_ids"], tok_train["attention_mask"], L_tr, y_tr.unsqueeze(1))
+    loader = DataLoader(ds, batch_size=min(32, BATCH_SIZE), shuffle=True)
+
+    # ── Helper: batched ESM inference ──────────────────────────────────
+    def esm_encode(tok_dict, batch_size=64):
+        """Encode proteins in mini-batches to avoid OOM."""
+        n = len(tok_dict["input_ids"])
+        outputs = []
+        esm.eval()
+        with torch.no_grad():
+            for i in range(0, n, batch_size):
+                ids = tok_dict["input_ids"][i:i+batch_size].to(device)
+                mask = tok_dict["attention_mask"][i:i+batch_size].to(device)
+                out = esm(input_ids=ids, attention_mask=mask)
+                outputs.append(out.pooler_output.cpu())
+        return torch.cat(outputs, dim=0)
+
+    # ── Training loop ───────────────────────────────────────────────────
+    # ponytail: manual loop — simpler than modifying train_torch for online encoding
+    best_rmse, best_state, patience_ctr = float("inf"), None, 0
+    t0 = time.time()
+    epochs_done = 0
+
+    for epoch in range(1, MAX_EPOCHS + 1):
+        esm.train() if finetune_k > 0 else esm.eval()
+        mlp_head.train()
+
+        for p_ids, p_mask, l_batch, y_batch in loader:
+            p_ids, p_mask = p_ids.to(device), p_mask.to(device)
+            l_batch, y_batch = l_batch.to(device), y_batch.to(device)
+
+            with torch.set_grad_enabled(finetune_k > 0):
+                esm_out = esm(input_ids=p_ids, attention_mask=p_mask)
+            prot_emb = esm_out.pooler_output  # (B, esm_dim)
+
+            x = torch.cat([l_batch, prot_emb], dim=1)
+            pred = mlp_head(x)
+            loss = criterion(pred, y_batch)
+
+            optimizer.zero_grad()
+            loss.backward()
+            nn.utils.clip_grad_norm_(mlp_head.parameters(), 1.0)
+            if finetune_k > 0:
+                nn.utils.clip_grad_norm_(encoder_params, 1.0)
+            optimizer.step()
+
+        # ── Validation ──────────────────────────────────────────────
+        esm.eval()
+        mlp_head.eval()
+        with torch.no_grad():
+            val_emb = esm_encode(tok_val)
+            val_pred = mlp_head(torch.cat([L_vl, val_emb.to(device)], dim=1))
+            val_pred = val_pred.cpu().numpy().ravel()
+
+        vm = compute_metrics(y_vl, val_pred)
+        if vm["rmse"] < best_rmse:
+            best_rmse = vm["rmse"]
+            patience_ctr = 0
+            best_state = {
+                "esm": {k: v.cpu().clone() for k, v in esm.state_dict().items()},
+                "head": {k: v.cpu().clone() for k, v in mlp_head.state_dict().items()},
+            }
+        else:
+            patience_ctr += 1
+
+        if epoch == 1 or epoch % 5 == 0:
+            print(f"  epoch {epoch:3d}  val_rmse={vm['rmse']:.4f}  "
+                  f"val_pearson={vm['pearson_r']:.4f}")
+        if patience_ctr >= PATIENCE:
+            epochs_done = epoch
+            break
+        epochs_done = epoch
+
+    # ── Test ────────────────────────────────────────────────────────────
+    esm.load_state_dict(best_state["esm"])
+    mlp_head.load_state_dict(best_state["head"])
+    esm.eval()
+    mlp_head.eval()
+
+    with torch.no_grad():
+        val_emb2 = esm_encode(tok_val)
+        val_pred2 = mlp_head(torch.cat([L_vl, val_emb2.to(device)], dim=1))
+        val_pred2 = val_pred2.cpu().numpy().ravel()
+
+        test_emb = esm_encode(tok_test)
+        test_pred = mlp_head(torch.cat([L_te, test_emb.to(device)], dim=1))
+        test_pred = test_pred.cpu().numpy().ravel()
+
+    val_m  = compute_metrics(y_vl, val_pred2)
+    test_m = compute_metrics(y_te, test_pred)
+    train_time = time.time() - t0
+
+    print(f"[ft_mlp] Val  → {format_metrics(val_m)}")
+    print(f"[ft_mlp] Test → {format_metrics(test_m)}")
+
+    save_predictions(_exp_id(exp_name), y_te, test_pred)
+    log_result(
+        experiment_id=_exp_id(exp_name), model_name=_exp_id(exp_name),
+        model_family="finetune_mlp", ligand_repr=cfg["ligand_repr"],
+        protein_repr="esm2_online", fusion_strategy="concat",
+        n_params=n_params, epochs_trained=epochs_done,
+        batch_size=min(32, BATCH_SIZE), learning_rate=LEARNING_RATE,
+        split_type=_split_tag(), n_train=len(y_tr), n_val=len(y_vl),
+        n_test=len(y_te), val_metrics=val_m, test_metrics=test_m,
+        train_time_sec=train_time,
+        notes=f"ESM-2 {esm_size} top {finetune_k} layers unfrozen. {cfg.get('notes','')}",
+    )
 
 
+def run_finetune_bica_v2(exp_name: str):
+    """BiCA v2 with fine-tuned ESM-2 + ChemBERTa encoders.
 
+    ponytail: loads both encoders in-graph, unfreezes top k layers,
+    forward-propagates sequences through both every batch.
+    """
+    import torch, torch.nn as nn
+    from torch.utils.data import Dataset, DataLoader, TensorDataset
+    from transformers import AutoTokenizer, AutoModel
+    from harness.trainer import _get_device, count_parameters
+    from harness.config import LABEL_COL, SMILES_COL, PROTEIN_COL
+    from harness.config import BATCH_SIZE, MAX_EPOCHS, PATIENCE, LEARNING_RATE
+    from harness.metrics import compute_metrics, format_metrics
+    from harness.diary import log_result, save_predictions
+    import time, numpy as np
+
+    cfg = EXPERIMENTS[exp_name]
+    esm_size       = cfg.get("esm2_size", "35M")
+    finetune_k     = cfg.get("finetune_layers", 3)
+    esm_map = {
+        "35M": ("facebook/esm2_t12_35M_UR50D", 480, 12),
+    }
+    esm_model_name, esm_dim, esm_layers = esm_map[esm_size]
+    cb_model_name = "DeepChem/ChemBERTa-77M-MTR"
+
+    print(f"\n{'='*60}\n  Experiment: {exp_name}  [BiCA v2 FT k={finetune_k}]\n{'='*60}")
+
+    train_df, val_df, test_df = _get_splits()
+    device = _get_device()
+
+    # ── Load ESM-2 ──────────────────────────────────────────────────────
+    print(f"[ft_bica] Loading ESM-2 {esm_size} via esm library …")
+    import esm as esm_lib
+    esm_loaders = {
+        "35M": esm_lib.pretrained.esm2_t12_35M_UR50D,
+    }
+    esm, esm_alphabet = esm_loaders[esm_size]()
+    esm_batch_converter = esm_alphabet.get_batch_converter()
+    esm = esm.to(device)
+    for p in esm.parameters():
+        p.requires_grad = False
+    if finetune_k > 0:
+        for layer in list(esm.layers)[-finetune_k:]:
+            for p in layer.parameters():
+                p.requires_grad = True
+        # Unfreeze emb_layer_norm_after equivalent
+        for p in esm.emb_layer_norm_after.parameters():
+            p.requires_grad = True
+
+    # ── Load ChemBERTa ──────────────────────────────────────────────────
+    print(f"[ft_bica] Loading ChemBERTa {cb_model_name} …")
+    cb_tok = AutoTokenizer.from_pretrained(cb_model_name, local_files_only=True)
+    cb = AutoModel.from_pretrained(cb_model_name, local_files_only=True).to(device)
+    print(f"[ft_bica] ChemBERTa loaded on device, hidden_size={cb.config.hidden_size}")
+    for p in cb.parameters():
+        p.requires_grad = False
+    if finetune_k > 0:
+        cb_layers = list(cb.encoder.layer) if hasattr(cb, 'encoder') else []
+        for layer in cb_layers[-finetune_k:]:
+            for p in layer.parameters():
+                p.requires_grad = True
+
+    # ── Build BiCA v2 model ─────────────────────────────────────────────
+    # ponytail: reuse existing bica_v2 builder — lig_dim from ChemBERTa, prot_dim from ESM-2
+    cb_dim = cb.config.hidden_size  # typically 600 for ChemBERTa-zinc-base
+    from models.bica_v2 import build_bica_v2
+    bica = build_bica_v2(protein_dim=esm_dim, ligand_dim=cb_dim,
+                         hidden_dim=128, num_heads=4, dropout=0.1).to(device)
+    print(f"[ft_bica] BiCA v2 built ({count_parameters(bica):,} params)")
+    n_params = (count_parameters(bica) +
+                sum(p.numel() for p in esm.parameters() if p.requires_grad) +
+                sum(p.numel() for p in cb.parameters() if p.requires_grad))
+
+    # ── Optimizer ───────────────────────────────────────────────────────
+    ft_params = ([p for p in esm.parameters() if p.requires_grad] +
+                 [p for p in cb.parameters() if p.requires_grad])
+    optimizer = torch.optim.AdamW([
+        {"params": ft_params, "lr": LEARNING_RATE * 0.1},
+        {"params": bica.parameters(), "lr": LEARNING_RATE},
+    ], weight_decay=1e-4)
+    criterion = nn.MSELoss()
+
+    # ── Tokenize ────────────────────────────────────────────────────────
+    print(f"[ft_bica] Tokenizing {len(train_df)} train + {len(val_df)} val + {len(test_df)} test sequences …")
+    def tokenize_prot(seqs):
+        data = [(f"p{i}", s[:512]) for i, s in enumerate(seqs)]
+        _, _, tokens = esm_batch_converter(data)
+        mask = (tokens != esm_alphabet.padding_idx).long()
+        return {"input_ids": tokens, "attention_mask": mask}
+    def tokenize_lig(smiles_list):
+        return cb_tok(smiles_list, return_tensors="pt", padding=True,
+                      truncation=True, max_length=256)
+
+    tok_p_tr = tokenize_prot(train_df[PROTEIN_COL].tolist())
+    tok_p_vl = tokenize_prot(val_df[PROTEIN_COL].tolist())
+    tok_p_te = tokenize_prot(test_df[PROTEIN_COL].tolist())
+    tok_l_tr = tokenize_lig(train_df[SMILES_COL].tolist())
+    tok_l_vl = tokenize_lig(val_df[SMILES_COL].tolist())
+    tok_l_te = tokenize_lig(test_df[SMILES_COL].tolist())
+
+    y_tr = train_df[LABEL_COL].values.astype(np.float32)
+    y_vl = val_df[LABEL_COL].values.astype(np.float32)
+    y_te = test_df[LABEL_COL].values.astype(np.float32)
+
+    # ── DataLoader ──────────────────────────────────────────────────────
+    ds = TensorDataset(
+        tok_p_tr["input_ids"], tok_p_tr["attention_mask"],
+        tok_l_tr["input_ids"], tok_l_tr["attention_mask"],
+        torch.tensor(y_tr, dtype=torch.float32).unsqueeze(1))
+    print(f"[ft_bica] Tokenization done. Building DataLoader …")
+    import sys; sys.stdout.flush()
+    loader = DataLoader(ds, batch_size=min(16, BATCH_SIZE // 2), shuffle=True)
+    print(f"[ft_bica] DataLoader built. Starting training …"); sys.stdout.flush()
+
+    best_rmse, best_state, patience_ctr = float("inf"), None, 0
+    t0 = time.time()
+    epochs_done = 0
+
+    for epoch in range(1, MAX_EPOCHS + 1):
+        esm.train() if finetune_k > 0 else esm.eval()
+        cb.train() if finetune_k > 0 else cb.eval()
+        bica.train()
+
+        for pid, pmask, lid, lmask, yb in loader:
+            pid, pmask = pid.to(device), pmask.to(device)
+            lid, lmask = lid.to(device), lmask.to(device)
+            yb = yb.to(device)
+
+            with torch.set_grad_enabled(finetune_k > 0):
+                prot_out = esm(pid, repr_layers=[esm.num_layers])
+                prot_out = prot_out["representations"][esm.num_layers]
+                lig_out  = cb(input_ids=lid, attention_mask=lmask).last_hidden_state
+
+            # Create masks: 1 = real, 0 = pad (matching bica_v2 convention)
+            prot_mask = pmask.bool()
+            lig_mask  = lmask.bool()
+
+            pred = bica(prot_out, lig_out, prot_mask, lig_mask)
+            loss = criterion(pred, yb)
+
+            optimizer.zero_grad()
+            loss.backward()
+            nn.utils.clip_grad_norm_(bica.parameters(), 1.0)
+            if ft_params:
+                nn.utils.clip_grad_norm_(ft_params, 1.0)
+            optimizer.step()
+
+        # ── Validation ──────────────────────────────────────────────
+        esm.eval(); cb.eval(); bica.eval()
+        with torch.no_grad():
+            # Batched protein encoding to avoid OOM
+            MAX_PROT_PER_BATCH = 64
+            all_p_out = []
+            all_l_out = []
+            tok_p_vl_ids = tok_p_vl["input_ids"].to(device)
+            tok_p_vl_mask = tok_p_vl["attention_mask"].bool().to(device)
+            for p_start in range(0, len(tok_p_vl_ids), MAX_PROT_PER_BATCH):
+                p_end = min(p_start + MAX_PROT_PER_BATCH, len(tok_p_vl_ids))
+                p_batch = esm(tok_p_vl_ids[p_start:p_end],
+                              repr_layers=[esm.num_layers])
+                all_p_out.append(p_batch["representations"][esm.num_layers].cpu())
+            p_vl = torch.cat(all_p_out, dim=0).to(device)
+            l_vl = cb(input_ids=tok_l_vl["input_ids"].to(device),
+                      attention_mask=tok_l_vl["attention_mask"].to(device))
+            val_pred = bica(p_vl, l_vl.last_hidden_state,
+                           tok_p_vl_mask,
+                           tok_l_vl["attention_mask"].bool().to(device))
+            val_pred = val_pred.cpu().numpy().ravel()
+
+        vm = compute_metrics(y_vl, val_pred)
+        if vm["rmse"] < best_rmse:
+            best_rmse = vm["rmse"]; patience_ctr = 0
+            best_state = {
+                "esm": {k: v.cpu().clone() for k, v in esm.state_dict().items()},
+                "cb": {k: v.cpu().clone() for k, v in cb.state_dict().items()},
+                "bica": {k: v.cpu().clone() for k, v in bica.state_dict().items()},
+            }
+        else:
+            patience_ctr += 1
+
+        if epoch % 5 == 0:
+            print(f"  epoch {epoch:3d}  val_rmse={vm['rmse']:.4f}  "
+                  f"val_pearson={vm['pearson_r']:.4f}")
+        if patience_ctr >= PATIENCE:
+            epochs_done = epoch; break
+        epochs_done = epoch
+
+    # ── Test ────────────────────────────────────────────────────────────
+    esm.load_state_dict(best_state["esm"])
+    cb.load_state_dict(best_state["cb"])
+    bica.load_state_dict(best_state["bica"])
+    esm.eval(); cb.eval(); bica.eval()
+
+    with torch.no_grad():
+        # Validation (batched)
+        all_p_vl2 = []
+        tok_p_vl_ids2 = tok_p_vl["input_ids"].to(device)
+        for p_start in range(0, len(tok_p_vl_ids2), MAX_PROT_PER_BATCH):
+            p_end = min(p_start + MAX_PROT_PER_BATCH, len(tok_p_vl_ids2))
+            pb = esm(tok_p_vl_ids2[p_start:p_end], repr_layers=[esm.num_layers])
+            all_p_vl2.append(pb["representations"][esm.num_layers].cpu())
+        p_vl2 = torch.cat(all_p_vl2, dim=0).to(device)
+        l_vl2 = cb(input_ids=tok_l_vl["input_ids"].to(device),
+                   attention_mask=tok_l_vl["attention_mask"].to(device))
+        val_pred2 = bica(p_vl2, l_vl2.last_hidden_state,
+                        tok_p_vl["attention_mask"].bool().to(device),
+                        tok_l_vl["attention_mask"].bool().to(device))
+        val_pred2 = val_pred2.cpu().numpy().ravel()
+
+        # Test (batched)
+        all_p_te = []
+        tok_p_te_ids = tok_p_te["input_ids"].to(device)
+        for p_start in range(0, len(tok_p_te_ids), MAX_PROT_PER_BATCH):
+            p_end = min(p_start + MAX_PROT_PER_BATCH, len(tok_p_te_ids))
+            pb = esm(tok_p_te_ids[p_start:p_end], repr_layers=[esm.num_layers])
+            all_p_te.append(pb["representations"][esm.num_layers].cpu())
+        p_te = torch.cat(all_p_te, dim=0).to(device)
+        l_te = cb(input_ids=tok_l_te["input_ids"].to(device),
+                  attention_mask=tok_l_te["attention_mask"].to(device))
+        test_pred = bica(p_te, l_te.last_hidden_state,
+                        tok_p_te["attention_mask"].bool().to(device),
+                        tok_l_te["attention_mask"].bool().to(device))
+        test_pred = test_pred.cpu().numpy().ravel()
+
+    val_m  = compute_metrics(y_vl, val_pred2)
+    test_m = compute_metrics(y_te, test_pred)
+    train_time = time.time() - t0
+
+    print(f"[ft_bica] Val  → {format_metrics(val_m)}")
+    print(f"[ft_bica] Test → {format_metrics(test_m)}")
+
+    save_predictions(_exp_id(exp_name), y_te, test_pred)
+    log_result(
+        experiment_id=_exp_id(exp_name), model_name=_exp_id(exp_name),
+        model_family="finetune_bica_v2", ligand_repr="chemberta_online_77M",
+        protein_repr="esm2_online", fusion_strategy="bidirectional_cross_attn",
+        n_params=n_params, epochs_trained=epochs_done,
+        batch_size=min(16, BATCH_SIZE // 2), learning_rate=LEARNING_RATE,
+        split_type=_split_tag(), n_train=len(y_tr), n_val=len(y_vl),
+        n_test=len(y_te), val_metrics=val_m, test_metrics=test_m,
+        train_time_sec=train_time,
+        notes=f"ESM-2 {esm_size} + ChemBERTa-77M, top {finetune_k} layers unfrozen. {cfg.get('notes','')}",
+    )
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CLI
@@ -3129,16 +3239,20 @@ def main():
     parser.add_argument("--list",    action="store_true", help="List all experiments")
     parser.add_argument("--leaderboard", action="store_true", help="Print leaderboard")
     parser.add_argument("--dataset", type=str, default="bindingdb",
-                        choices=["bindingdb", "leakypdb", "bindingdb_cold_target", "bindingdb_cold_drug"],
+                        choices=["bindingdb", "leakypdb"],
                         help="Dataset to use (default: bindingdb)")
     parser.add_argument("--seed",    type=int, default=SPLIT_SEED,
                         help=f"Scaffold split seed (default: {SPLIT_SEED}, bindingdb only)")
+    parser.add_argument("--split",   type=str, default="scaffold",
+                        choices=["scaffold", "random"],
+                        help="Split type: scaffold or random (default: scaffold)")
     args = parser.parse_args()
 
-    # Set active dataset/seed globals before any run() call
-    global _ACTIVE_DATASET, _ACTIVE_SEED
+    # Set active dataset/seed/split globals before any run() call
+    global _ACTIVE_DATASET, _ACTIVE_SEED, _ACTIVE_SPLIT
     _ACTIVE_DATASET = args.dataset
     _ACTIVE_SEED    = args.seed
+    _ACTIVE_SPLIT   = args.split
 
     if args.list:
         for name, cfg in EXPERIMENTS.items():
