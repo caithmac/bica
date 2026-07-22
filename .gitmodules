@@ -1,0 +1,3 @@
+[submodule "PSICHIC"]
+	path = PSICHIC
+	url = https://github.com/caithmac/PSICHIC.git
