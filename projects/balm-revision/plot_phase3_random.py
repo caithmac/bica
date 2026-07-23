@@ -40,13 +40,13 @@ MODEL_ORDER = [
 ]
 
 SHORT_NAMES = {
-    'RF_ECFP4+ESM2-8M':    'RF\nECFP4+ESM2',
-    'RF_ECFP4+AAC':         'RF\nECFP4+AAC',
-    'RF_ECFP4-only':        'RF\nECFP4-only',
-    'MLP_deep_ECFP4+AAC':   'MLP deep\n+AAC',
-    'MLP_deep_ECFP4-only':  'MLP deep\nECFP4-only',
-    'MLP_shallow_ECFP4+AAC':'MLP shallow\n+AAC',
-    'MLP_shallow_ECFP4-only':'MLP shallow\nECFP4-only',
+    'RF_ECFP4+ESM2-8M':    'RF+ESM2',
+    'RF_ECFP4+AAC':         'RF+AAC',
+    'RF_ECFP4-only':        'RF-only',
+    'MLP_deep_ECFP4+AAC':   'MLP-d+AAC',
+    'MLP_deep_ECFP4-only':  'MLP-d',
+    'MLP_shallow_ECFP4+AAC':'MLP-s+AAC',
+    'MLP_shallow_ECFP4-only':'MLP-s',
 }
 
 FAMILY = {
