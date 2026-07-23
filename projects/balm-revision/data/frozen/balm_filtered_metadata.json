@@ -1,0 +1,39 @@
+{
+  "dataset": "BALM BindingDB_filtered",
+  "source": "BALM/BALM-benchmark on HuggingFace",
+  "config": "BindingDB_filtered",
+  "frozen_at": "2026-07-22T16:38:08.503045Z",
+  "sha256": "784ed1361b5d0e0fe422c88950f322cfa49ab0343a989c75b15047550b39b43f",
+  "rows": 20484,
+  "unique_compounds": 9163,
+  "unique_targets": 1069,
+  "unique_scaffolds": 4304,
+  "columns": [
+    "Drug_ID",
+    "Drug",
+    "Target_ID",
+    "Target",
+    "Y",
+    "Drug_canonical",
+    "scaffold"
+  ],
+  "protein_sequence_stats": {
+    "min_len": 86,
+    "max_len": 3969,
+    "mean_len": 650.5092755321226,
+    "median_len": 509.0
+  },
+  "pKd_stats": {
+    "count": 20484.0,
+    "mean": 6.422066688537598,
+    "std": 1.4872071743011475,
+    "min": 2.0,
+    "25%": 5.481472969055176,
+    "50%": 6.387110233306885,
+    "75%": 7.442492961883545,
+    "max": 10.0
+  },
+  "preprocessing": "groupby Drug_ID+Target_ID max Y, RDKit canonical SMILES, drop invalid",
+  "load_time_seconds": 3.8,
+  "parquet_path": "E:/Drug Discovery/projects/balm-revision/data/frozen\\balm_filtered.parquet"
+}

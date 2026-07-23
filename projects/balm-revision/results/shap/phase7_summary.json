@@ -1,0 +1,118 @@
+{
+  "generated_at": "2026-07-22T18:19:25.996869Z",
+  "n_splits": 9,
+  "splits": [
+    "random_seed42",
+    "random_seed123",
+    "random_seed456",
+    "scaffold_seed42",
+    "scaffold_seed123",
+    "scaffold_seed456",
+    "cold_target_seed42",
+    "cold_target_seed123",
+    "cold_target_seed456"
+  ],
+  "consistent_top_bits": [
+    {
+      "bit": "314",
+      "n_splits": 3,
+      "mean_shap": 0.0076188835922638256
+    },
+    {
+      "bit": "937",
+      "n_splits": 3,
+      "mean_shap": 0.006365959025222877
+    },
+    {
+      "bit": "926",
+      "n_splits": 3,
+      "mean_shap": 0.03048796513196479
+    },
+    {
+      "bit": "875",
+      "n_splits": 3,
+      "mean_shap": 0.017390400392847314
+    },
+    {
+      "bit": "897",
+      "n_splits": 3,
+      "mean_shap": 0.008632694374596232
+    },
+    {
+      "bit": "669",
+      "n_splits": 3,
+      "mean_shap": 0.006914898172025406
+    },
+    {
+      "bit": "1019",
+      "n_splits": 3,
+      "mean_shap": 0.009089077706698138
+    },
+    {
+      "bit": "33",
+      "n_splits": 3,
+      "mean_shap": 0.006214472220285976
+    },
+    {
+      "bit": "362",
+      "n_splits": 3,
+      "mean_shap": 0.031044402729191584
+    },
+    {
+      "bit": "456",
+      "n_splits": 3,
+      "mean_shap": 0.006544868726541014
+    },
+    {
+      "bit": "389",
+      "n_splits": 3,
+      "mean_shap": 0.006129521468228041
+    },
+    {
+      "bit": "833",
+      "n_splits": 3,
+      "mean_shap": 0.008871445946101477
+    },
+    {
+      "bit": "935",
+      "n_splits": 3,
+      "mean_shap": 0.008999726757764314
+    },
+    {
+      "bit": "428",
+      "n_splits": 3,
+      "mean_shap": 0.010019717938154031
+    },
+    {
+      "bit": "264",
+      "n_splits": 3,
+      "mean_shap": 0.01325436112611114
+    },
+    {
+      "bit": "91",
+      "n_splits": 3,
+      "mean_shap": 0.022392400966688625
+    },
+    {
+      "bit": "128",
+      "n_splits": 3,
+      "mean_shap": 0.008208466254471755
+    },
+    {
+      "bit": "378",
+      "n_splits": 3,
+      "mean_shap": 0.011341178398130957
+    },
+    {
+      "bit": "90",
+      "n_splits": 2,
+      "mean_shap": 0.013332997310093632
+    },
+    {
+      "bit": "583",
+      "n_splits": 2,
+      "mean_shap": 0.006359201102422395
+    }
+  ],
+  "note": "TreeSHAP on RF_ECFP4+AAC (500 trees, max_depth=20). ECFP4 bits 0-1023, AAC features 1024-1043."
+}

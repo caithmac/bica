@@ -1,0 +1,68 @@
+{
+  "generated_at": "2026-07-22T16:47:21.206309Z",
+  "enrichment": {
+    "top_1pct": {
+      "n_top": 40,
+      "n_recovered": 40,
+      "precision": 1.0,
+      "recall": 0.029,
+      "enrichment_factor": 2.96,
+      "ef_95ci_low": 0.59,
+      "ef_95ci_high": 1.48
+    },
+    "top_5pct": {
+      "n_top": 204,
+      "n_recovered": 193,
+      "precision": 0.946,
+      "recall": 0.14,
+      "enrichment_factor": 2.8,
+      "ef_95ci_low": 0.83,
+      "ef_95ci_high": 1.19
+    },
+    "top_10pct": {
+      "n_top": 409,
+      "n_recovered": 364,
+      "precision": 0.89,
+      "recall": 0.263,
+      "enrichment_factor": 2.64,
+      "ef_95ci_low": 0.87,
+      "ef_95ci_high": 1.14
+    }
+  },
+  "affinity_bins": {
+    "pKd_-100_5": {
+      "n": 634,
+      "rmse": 1.484,
+      "mae": 1.237
+    },
+    "pKd_5_6": {
+      "n": 964,
+      "rmse": 0.901,
+      "mae": 0.758
+    },
+    "pKd_6_7": {
+      "n": 1114,
+      "rmse": 0.546,
+      "mae": 0.417
+    },
+    "pKd_7_8": {
+      "n": 833,
+      "rmse": 0.867,
+      "mae": 0.707
+    },
+    "pKd_8_9": {
+      "n": 393,
+      "rmse": 1.373,
+      "mae": 1.148
+    },
+    "pKd_9_100": {
+      "n": 156,
+      "rmse": 2.048,
+      "mae": 1.788
+    }
+  },
+  "n_test": 4094,
+  "n_high_affinity": 1382,
+  "overall_test_rmse": 1.0524,
+  "overall_test_pearson": 0.7084
+}

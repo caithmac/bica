@@ -1,0 +1,102 @@
+{
+  "OLD \u2192 NEW": {
+    "exact_smiles": {
+      "compounds_in_overlap": 6476,
+      "rows_in_old_that_share": 17238,
+      "pct_of_old": 84.2,
+      "rows_in_new_that_share": 18485,
+      "pct_of_new": 34.9
+    },
+    "scaffold": {
+      "scaffolds_in_overlap": 3168,
+      "rows_in_old_that_share": 18316,
+      "pct_of_old": 89.4,
+      "rows_in_new_that_share": 23118,
+      "pct_of_new": 43.7
+    },
+    "protein_sequence": {
+      "proteins_in_overlap": 670,
+      "rows_in_old_that_share": 18602,
+      "pct_of_old": 90.8,
+      "rows_in_new_that_share": 37256,
+      "pct_of_new": 70.4
+    }
+  },
+  "OLD \u2192 LeakyPDB": {
+    "exact_smiles": {
+      "compounds_in_overlap": 369,
+      "rows_in_old_that_share": 2211,
+      "pct_of_old": 10.8,
+      "rows_in_leakypdb_that_share": 681,
+      "pct_of_leakypdb": 3.6
+    },
+    "scaffold": {
+      "scaffolds_in_overlap": 607,
+      "rows_in_old_that_share": 6425,
+      "pct_of_old": 31.4,
+      "rows_in_leakypdb_that_share": 6569,
+      "pct_of_leakypdb": 34.4
+    },
+    "protein_sequence": {
+      "proteins_in_overlap": 10,
+      "rows_in_old_that_share": 516,
+      "pct_of_old": 2.5,
+      "rows_in_leakypdb_that_share": 55,
+      "pct_of_leakypdb": 0.3
+    }
+  },
+  "NEW \u2192 LeakyPDB": {
+    "exact_smiles": {
+      "compounds_in_overlap": 662,
+      "rows_in_new_that_share": 3435,
+      "pct_of_new": 6.5,
+      "rows_in_leakypdb_that_share": 1071,
+      "pct_of_leakypdb": 5.6
+    },
+    "scaffold": {
+      "scaffolds_in_overlap": 1106,
+      "rows_in_new_that_share": 12476,
+      "pct_of_new": 23.6,
+      "rows_in_leakypdb_that_share": 7861,
+      "pct_of_leakypdb": 41.2
+    },
+    "protein_sequence": {
+      "proteins_in_overlap": 11,
+      "rows_in_new_that_share": 1216,
+      "pct_of_new": 2.3,
+      "rows_in_leakypdb_that_share": 51,
+      "pct_of_leakypdb": 0.3
+    }
+  },
+  "delta": {
+    "total_new_rows": 52898,
+    "rows_with_new_compounds": 34413,
+    "pct_new_compounds": 65.1,
+    "rows_with_new_pairs": 36714,
+    "pct_new_pairs": 69.4,
+    "new_compound_delta_path": "E:/Drug Discovery/projects/balm-revision/data/frozen/bindingdb_delta_new_compounds.parquet",
+    "new_pair_delta_path": "E:/Drug Discovery/projects/balm-revision/data/frozen/bindingdb_delta_new_pairs.parquet"
+  },
+  "_metadata": {
+    "generated_at": "2026-07-22T16:39:43.533039Z",
+    "runtime_seconds": 14.4,
+    "datasets": {
+      "old_balm": {
+        "rows": 20484,
+        "compounds": 9163,
+        "targets": 1069
+      },
+      "new_bindingdb": {
+        "rows": 52898,
+        "compounds": 30702,
+        "targets": 973
+      },
+      "leakypdb": {
+        "rows": 19087,
+        "compounds": 15446,
+        "targets": 12452
+      }
+    },
+    "methodology": "PAIR-level overlap (not unique compound). A compound appearing 100 times against 100 targets counts 100 times."
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "dataset": "BindingDB July 2026 \u2014 Kd-only",
+  "source": "bindingdb.org BindingDB_All_202607_tsv.zip",
+  "pipeline": "E105b: line-by-line csv parser, Kd-only (no Ki fallback), RDKit canonical, dedup max pKd per (SMILES,protein), protein QC \u22645% non-standard AA, min-10 compounds per target",
+  "frozen_at": "2026-07-22T16:38:52.994187Z",
+  "sha256": "2443f1412d00658b6d2871f8a3233cb7070a33eb1663b5fc448bbdeb7ae9bcb2",
+  "raw_source_size_gb": 8.99,
+  "raw_rows": 3285265,
+  "rows_after_pipeline": 52898,
+  "unique_compounds": 30702,
+  "unique_targets": 973,
+  "unique_scaffolds": 13088,
+  "columns": [
+    "smiles",
+    "protein_seq",
+    "pkd",
+    "smiles_canonical",
+    "scaffold"
+  ],
+  "protein_sequence_stats": {
+    "min_len": 32,
+    "max_len": 7096,
+    "mean_len": 646.1305720443117,
+    "median_len": 499.0
+  },
+  "pKd_stats": {
+    "count": 52898.0,
+    "mean": 6.82803521240431,
+    "std": 1.6770174084178981,
+    "min": -0.5430742350335321,
+    "25%": 5.638272163982407,
+    "50%": 6.7447274948966935,
+    "75%": 8.0,
+    "max": 15.0
+  },
+  "load_time_seconds": 0.1,
+  "parquet_path": "E:/Drug Discovery/projects/balm-revision/data/frozen\\bindingdb_202607_kd.parquet"
+}
